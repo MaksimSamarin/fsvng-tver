@@ -35,8 +35,9 @@ RATE_IP, RATE_ALL = 20, 60          # запросов в минуту: с од�
 UA = "fsvng-relay/1.0 (+https://maksimsamarin.github.io/fsvng-tver/)"
 
 # Бесплатные модели OpenRouter в порядке предпочтения; точные id берутся из каталога.
-PRIORITY = [r"deepseek.*v4.*flash", r"nemotron-3-super", r"inkling-small", r"ling-3.*flash",
-            r"qwen3\.8-27b", r"gemma-4-26b", r"glm-5"]
+# Прогон 18.09.2026 на одном промпте: DeepSeek — лучший формат (7 с), Nemotron — быстрее всех (2 с),
+# Ling — быстро и по делу. Inkling отдаёт 403, Qwen3.8/Gemma 4/GLM 5.2 на бесплатном тарифе не отвечали.
+PRIORITY = [r"deepseek.*v4.*flash", r"nemotron-3-super", r"ling-3.*flash"]
 
 
 def log(msg):
