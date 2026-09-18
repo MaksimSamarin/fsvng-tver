@@ -591,6 +591,14 @@ tpl = tpl.replace("<!--PANE:EXAM-->", '<div class="pane" id="p-ex" hidden>%s</di
 for k, v in (("vu", vu), ("du", du), ("uk", uk), ("le", le), ("ru", ru)):
     tpl = tpl.replace("<!--INSERT:%s-->" % k, chanlinks(v))
 
+# адрес воркера-помощника: пока файла нет — кнопка на странице не появляется
+AIF = os.path.join(SRCDIR, "ai_url.txt")
+ai_url = ""
+if os.path.exists(AIF):
+    ai_url = io.open(AIF, encoding="utf-8").read().strip()
+if ai_url:
+    tpl = tpl.replace('var AI_URL = "";', 'var AI_URL = "%s";' % ai_url)
+
 io.open(OUT, "w", encoding="utf-8").write(tpl)
 
 # standalone

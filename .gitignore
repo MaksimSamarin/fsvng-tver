@@ -8,6 +8,11 @@
 сайт/check_report.txt
 сайт/gh-pages/
 
+# Помощник: ключ Groq и служебное от wrangler
+сайт/помощник/.dev.vars
+сайт/помощник/node_modules/
+сайт/помощник/.wrangler/
+
 # Системное
 Thumbs.db
 desktop.ini

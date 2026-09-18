@@ -23,7 +23,9 @@
 
 ## Сайт для курсантов
 
-**https://claude.ai/code/artifact/dd36cbb3-c577-43bf-82b6-44ace7772edf**
+**https://maksimsamarin.github.io/fsvng-tver/**
+
+Репозиторий: https://github.com/MaksimSamarin/fsvng-tver
 
 Семь вкладок: памятка, три устава целиком, лекции, система повышения, экзамен из 20 вопросов. Всё внутри страницы — переходить никуда не нужно.
 

@@ -1,0 +1,10 @@
+{
+  "name": "fsvng-assistant",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "kb": "python kb.py",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  }
+}

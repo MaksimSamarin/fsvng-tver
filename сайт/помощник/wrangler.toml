@@ -1,0 +1,13 @@
+name = "fsvng-assistant"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Публичные адреса на каждую версию не нужны — воркер один
+preview_urls = false
+
+# Модели крутятся внутри Cloudflare: Groq режет запросы с адресов воркеров
+[ai]
+binding = "AI"
+
+[observability]
+enabled = true

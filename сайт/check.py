@@ -99,13 +99,34 @@ for cnt, need, what in [(site.count('class="blk"'), 12, "разделов пам
     else: err("%s: %d вместо %d" % (what, cnt, need))
 
 
+# 5а. помощник по уставам
+head("Помощник по уставам")
+for frag, what in [('id="aiOpen"', "кнопка"), ('id="aiPanel"', "панель"),
+                   ('id="aiLog"', "лента ответов"), ('id="aiForm"', "форма вопроса"),
+                   ("var AI_URL", "переменная адреса")]:
+    if frag in site: ok("%s на месте" % what)
+    else: err("нет: %s" % what)
+if site.count('class="ai-chip"') == 4: ok("4 быстрых сценария")
+else: err("быстрых сценариев %d вместо 4" % site.count('class="ai-chip"'))
+m = re.search(r'var AI_URL = "([^"]*)"', site)
+if m and m.group(1).startswith("https://"): ok("адрес воркера прописан: %s" % m.group(1))
+else: warn("адрес воркера пуст — кнопка помощника на странице скрыта")
+KBJS = os.path.join(HERE, "помощник", "kb.js")
+if os.path.exists(KBJS):
+    n = read(KBJS).count('{"d":')
+    ok("база знаний помощника: %d фрагментов" % n)
+else: err("нет сайт/помощник/kb.js")
+
 # 5b. баланс тегов в панелях — ловит «уехавшие» блоки
 head("Целостность панелей")
 panes=["p-memo","p-ru","p-le","p-vu","p-du","p-uk","p-ex"]
+# хвост страницы после последней панели — виджет помощника, в подсчёт панелей не входит
+tail_at = site.find('<button class="ai-btn"')
+body = site[:tail_at] if tail_at > 0 else site
 diffs={}
 for pid in panes:
-    i=site.find('id="%s"'%pid); j=site.find('<div class="pane"', i+20)
-    part=site[i:(j if j>0 else len(site))]
+    i=body.find('id="%s"'%pid); j=body.find('<div class="pane"', i+20)
+    part=body[i:(j if j>0 else len(body))]
     diffs[pid]=part.count("<div")-part.count("</div>")
 base=diffs["p-memo"]
 skew=[p for p in panes[:-1] if diffs[p]!=base]
