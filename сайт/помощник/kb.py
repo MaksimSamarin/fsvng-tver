@@ -14,8 +14,10 @@ chunks = []
 
 MAXLEN = 1600          # длинные статьи режем, иначе восемь фрагментов раздувают запрос
 
+PLACEHOLDER = re.compile(r"\b[A-Z]{3,}(?:-[A-Z]+)+\b")   # технические маркеры сборки вроде OATH-UNIFORM-GALLERY
+
 def add(doc, title, text, ref=""):
-    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", PLACEHOLDER.sub("", text)).strip()
     if len(text) < 40: return
     if len(text) > MAXLEN: text = text[:MAXLEN].rsplit(" ", 1)[0] + "…"
     chunks.append({"d": doc, "t": title, "x": text, "r": ref})
@@ -93,7 +95,8 @@ for fn, doc in MD:
         s = l.strip()
         m = re.match(r"^(#{2,4})\s+(.*)$", s)
         if m:
-            if not SKIP.search(sec): add(doc, sec, " ".join(buf))
+            # источник — название документа: иначе модели нечего указать в «Основании» по лекциям
+            if not SKIP.search(sec): add(doc, sec, " ".join(buf), doc)
             sec, buf = m.group(2), []
             continue
         if s.startswith("|") or s.startswith("---"):
@@ -101,7 +104,7 @@ for fn, doc in MD:
         s = re.sub(r"\*\*(.+?)\*\*", r"\1", s).replace("`", "")
         s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)
         if s and not set(s) <= set("- :—"): buf.append(s)
-    if not SKIP.search(sec): add(doc, sec, " ".join(buf))
+    if not SKIP.search(sec): add(doc, sec, " ".join(buf), doc)
 
 out = os.path.join(HERE, "kb.js")
 io.open(out, "w", encoding="utf-8").write(
