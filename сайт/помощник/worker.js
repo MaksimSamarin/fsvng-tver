@@ -320,8 +320,10 @@ function pick(question, prev, qcos) {
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
 
-  // слабое совпадение: низкий балл или из нескольких значимых слов вопроса нашлось только одно
-  const lexWeak = !scored.length || scored[0].s < WEAK || (baseSet.size >= 2 && scored[0].h < 2);
+  // слабое совпадение: низкий балл или из нескольких значимых слов вопроса нашлось только одно.
+  // Названный номер статьи («статья 5 УПК») — это точное попадание, а не слабое, хоть слов и совпало одно.
+  const byNumber = num.length > 0 && scored.length > 0 && scored[0].s >= 12;
+  const lexWeak = !byNumber && (!scored.length || scored[0].s < WEAK || (baseSet.size >= 2 && scored[0].h < 2));
 
   // номер статьи, названный документ, пересказ — точность важнее, ищем только словами
   const exact = lookup || !!hint || num.length > 0;
