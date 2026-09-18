@@ -1,6 +1,27 @@
-# Реле для OpenRouter
+# Реле для OpenRouter и Groq
 
-Резервный путь помощника на случай, когда дневной лимит Workers AI исчерпан.
+Резервный путь помощника на случай, когда дневной лимит Workers AI исчерпан. Два варианта размещения: **свой VPS** (`vps/`, рабочий с 18.09.2026) или Vercel (`api/`, запасной рецепт).
+
+## Вариант VPS — `vps/`
+
+Реле на чистом Python 3.12, без зависимостей: `relay.py` + systemd-юнит в песочнице + таймер копирования сертификата. Провайдеры по порядку: OpenRouter (бесплатные модели по списку `PRIORITY`, у думающих моделей рассуждения выключены) → Groq. Порт снаружи открыт **только для сетей Cloudflare** — правила ufw ставит `setup.sh`.
+
+Установка на Ubuntu/Debian, где уже есть TLS-сертификат хоста:
+
+```
+scp vps/* root@<хост>:/root/relay-install/
+ssh root@<хост>
+  cd /root/relay-install && sed -i 's/\r$//' *
+  cp env.example /etc/relay/env    # заполнить RELAY_SECRET, OPENROUTER_API_KEY, GROQ_API_KEY
+  PORT=8443 CERT_SRC=/root/cert/<хост> bash setup.sh
+  journalctl -u relay -n 20 --no-pager
+```
+
+Воркеру нужны два секрета: `RELAY_URL=https://<хост>:8443/api/chat` и тот же `RELAY_SECRET`. Хост в этом репозитории не называется намеренно. Снять всё — `bash uninstall.sh`.
+
+Что за собой не оставляет: свой пользователь `relay` без shell, `/opt/relay`, `/etc/relay` (env 640 root:relay, копия сертификата), два юнита и таймер, правила ufw с пометкой `fsvng relay`. Существующие сервисы, acme и порты 22/80/443 не трогает.
+
+## Вариант Vercel — `api/`
 
 ## Зачем отдельная площадка
 

@@ -1,0 +1,37 @@
+[Unit]
+Description=FSVNG assistant relay (Cloudflare worker -> OpenRouter/Groq)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=relay
+Group=relay
+EnvironmentFile=/etc/relay/env
+ExecStart=/usr/bin/python3 /opt/relay/relay.py
+Restart=always
+RestartSec=3
+
+# Ничего лишнего: без привилегий, файловая система только для чтения, домашние каталоги невидимы
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+MemoryMax=200M
+ReadOnlyPaths=/etc/relay /opt/relay
+
+[Install]
+WantedBy=multi-user.target

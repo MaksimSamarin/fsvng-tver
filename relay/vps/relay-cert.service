@@ -1,0 +1,7 @@
+[Unit]
+Description=Copy renewed TLS certificate for FSVNG relay
+
+[Service]
+Type=oneshot
+Environment=CERT_SRC=/root/cert/relay
+ExecStart=/opt/relay/relay-cert.sh
