@@ -29,9 +29,16 @@ GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 PROVIDERS = [p.strip() for p in os.environ.get("PROVIDERS", "openrouter,groq").split(",") if p.strip()]
 GROQ_MODELS = [m.strip() for m in os.environ.get("GROQ_MODELS", "qwen/qwen3.8-27b,openai/gpt-oss-120b").split(",") if m.strip()]
 PAID_MODEL = os.environ.get("PAID_MODEL", "").strip()   # платная модель OpenRouter — самый последний рубеж, нужен баланс
+# Эмбеддинги для поиска: одна модель навсегда — векторы статей и вопросов сравнимы только от одних весов.
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "qwen/qwen3-embedding-4b").strip()
+EMBED_DIMS = int(os.environ.get("EMBED_DIMS", "1024") or 0)
+MAX_EMBED_ITEMS = 64
+# Журнал вопросов (только текст и время, без адресов) — единственный честный источник для проверки поиска
+LOG_QUESTIONS = os.environ.get("LOG_QUESTIONS", "1") == "1"
+LOG_DIR = os.environ.get("STATE_DIRECTORY", "/var/lib/relay")
 TLS_CERT = os.environ.get("TLS_CERT", "/etc/relay/tls/fullchain.pem")
 TLS_KEY = os.environ.get("TLS_KEY", "/etc/relay/tls/privkey.pem")
-MAX_BODY = 64 * 1024
+MAX_BODY = 256 * 1024       # пачка статей на эмбеддинг не влезает в 64 КБ
 RATE_IP, RATE_ALL = 20, 60          # запросов в минуту: с одного адреса / всего
 UA = "fsvng-relay/1.0 (+https://maksimsamarin.github.io/fsvng-tver/)"
 
@@ -146,6 +153,36 @@ def ask(messages, max_tokens, want_model):
     return None, None, errors
 
 
+def embed(items):
+    if not OR_KEY:
+        return None, "нет OPENROUTER_API_KEY"
+    body = {"model": EMBED_MODEL, "input": items}
+    if EMBED_DIMS:
+        body["dimensions"] = EMBED_DIMS
+    st, txt = http_json("https://openrouter.ai/api/v1/embeddings",
+                        {"Authorization": "Bearer " + OR_KEY, "Content-Type": "application/json"}, body, timeout=60)
+    if st != 200:
+        return None, "%s: HTTP %d %s" % (EMBED_MODEL, st, txt[:120].replace("\n", " "))
+    try:
+        data = sorted(json.loads(txt)["data"], key=lambda x: x.get("index", 0))
+        return [x["embedding"] for x in data], None
+    except Exception:
+        return None, "нечитаемый ответ эмбеддера"
+
+
+_qlock = threading.Lock()
+
+
+def log_question(q):
+    """Только текст вопроса и время. Ни адреса, ни ответа."""
+    try:
+        line = json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "q": q.strip()[:600]}, ensure_ascii=False)
+        with _qlock, open(os.path.join(LOG_DIR, "questions.jsonl"), "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except OSError as e:
+        log("журнал вопросов недоступен: %s" % e)
+
+
 # ---------- HTTP ----------
 class Handler(BaseHTTPRequestHandler):
     server_version = "relay"
@@ -169,7 +206,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         ip = self.client_address[0]
-        if self.path != "/api/chat":
+        if self.path not in ("/api/chat", "/api/embed"):
             return self._json(404, {"error": "not found"})
         if not SECRET or not hmac.compare_digest(self.headers.get("X-Relay-Key", ""), SECRET):
             log("403 %s" % ip)
@@ -185,6 +222,26 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(413, {"error": "тело запроса пустое или больше 64 КБ"})
         try:
             body = json.loads(self.rfile.read(n).decode("utf-8"))
+        except Exception:
+            return self._json(400, {"error": "тело не JSON"})
+
+        if self.path == "/api/embed":
+            items = body.get("input")
+            if (not isinstance(items, list) or not items or len(items) > MAX_EMBED_ITEMS
+                    or not all(isinstance(x, str) and x.strip() for x in items)):
+                return self._json(400, {"error": "input: список из 1–%d непустых строк" % MAX_EMBED_ITEMS})
+            q = body.get("q")
+            if LOG_QUESTIONS and isinstance(q, str) and q.strip():
+                log_question(q)
+            t0 = time.time()
+            vecs, err = embed([x[:6000] for x in items])
+            if vecs:
+                log("emb %s %d шт. %.1fс" % (ip, len(vecs), time.time() - t0))
+                return self._json(200, {"vectors": vecs, "model": EMBED_MODEL, "dims": len(vecs[0])})
+            log("emb-502 %s %s" % (ip, err))
+            return self._json(502, {"error": err})
+
+        try:
             messages = body["messages"]
             assert isinstance(messages, list) and messages
         except Exception:
@@ -251,8 +308,11 @@ def main():
     srv = Server(("0.0.0.0", PORT), Handler)
     srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
     threading.Thread(target=watch_cert, args=(ctx,), daemon=True).start()
+    if LOG_QUESTIONS and not os.path.isdir(LOG_DIR):
+        log("каталог журнала %s не существует — вопросы писаться не будут" % LOG_DIR)
     log("реле слушает :%d, провайдеры: %s%s" % (PORT, ", ".join(p for p in PROVIDERS if (p == "openrouter" and OR_KEY) or (p == "groq" and GROQ_KEY)),
                                               (", платный рубеж: " + PAID_MODEL) if PAID_MODEL and OR_KEY else ""))
+    log("эмбеддинги: %s, %d измерений" % (EMBED_MODEL, EMBED_DIMS))
     srv.serve_forever()
 
 

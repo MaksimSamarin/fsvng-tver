@@ -133,8 +133,20 @@ if m and m.group(1).startswith("https://"): ok("адрес воркера про
 else: warn("адрес воркера пуст — кнопка помощника на странице скрыта")
 KBJS = os.path.join(HERE, "помощник", "kb.js")
 if os.path.exists(KBJS):
-    n = read(KBJS).count('{"d":')
-    ok("база знаний помощника: %d фрагментов" % n)
+    kbtxt = read(KBJS)
+    n = kbtxt.count('{"d":')
+    ok("база знаний помощника: %d фрагментов, с разговорными фразами %d" % (n, kbtxt.count('"k":')))
+    # векторы должны быть посчитаны ровно для этой базы — иначе поиск будет тыкать в чужие статьи
+    VJS = os.path.join(HERE, "помощник", "kb-vec.js")
+    if os.path.exists(VJS):
+        import hashlib
+        kb = json.loads(kbtxt[kbtxt.index("[", kbtxt.index("export const KB")):kbtxt.rindex("]") + 1])
+        sig = hashlib.sha1("\n".join(c.get("r", "") + "|" + c["t"] for c in kb).encode("utf-8")).hexdigest()[:16]
+        vtxt = read(VJS)
+        vec = json.loads(vtxt[vtxt.index("{", vtxt.index("export const VEC")):vtxt.rindex("}") + 1])
+        if vec.get("n") == n and vec.get("sig") == sig: ok("векторы помощника: %d × %d, модель %s" % (vec["n"], vec["dims"], vec["model"]))
+        else: err("векторы помощника не от этой базы (%s/%s) — пересчитать: сайт/помощник/vec.py" % (vec.get("n"), n))
+    else: warn("нет kb-vec.js — помощник ищет только словами")
 else: err("нет сайт/помощник/kb.js")
 
 head("Кодексы: составы и санкции")

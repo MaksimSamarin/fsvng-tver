@@ -16,11 +16,23 @@ MAXLEN = 1600          # длинные статьи режем, иначе во
 
 PLACEHOLDER = re.compile(r"\b[A-Z]{3,}(?:-[A-Z]+)+\b")   # технические маркеры сборки вроде OATH-UNIFORM-GALLERY
 
+# Разговорные формулировки к статьям — как курсант спросил бы про это. Участвуют только в поиске,
+# модели не показываются. Ключ — источник статьи («УКПС ст. 36»); для лекций — «документ | раздел».
+KEYS_PATH = os.path.join(HERE, "keys.json")
+KEYS = json.loads(read(KEYS_PATH)) if os.path.exists(KEYS_PATH) else {}
+used_keys = set()
+
 def add(doc, title, text, ref=""):
     text = re.sub(r"\s+", " ", PLACEHOLDER.sub("", text)).strip()
     if len(text) < 40: return
     if len(text) > MAXLEN: text = text[:MAXLEN].rsplit(" ", 1)[0] + "…"
-    chunks.append({"d": doc, "t": title, "x": text, "r": ref})
+    entry = {"d": doc, "t": title, "x": text, "r": ref}
+    for key in (ref, "%s | %s" % (ref, title)):
+        if key in KEYS:
+            entry["k"] = " ; ".join(KEYS[key])
+            used_keys.add(key)
+            break
+    chunks.append(entry)
 
 # ---------- уставы: каждая статья отдельным фрагментом ----------
 CHARTERS = [
@@ -99,6 +111,8 @@ for fn, doc in MD:
             if not SKIP.search(sec): add(doc, sec, " ".join(buf), doc)
             sec, buf = m.group(2), []
             continue
+        # авторство, даты и ссылки на схемы — служебные следы, курсанту и модели они ни к чему
+        if re.match(r"^\*{0,2}(Автор|Авторы|Дата|Даты|Источник|Схема постов)\b", s): continue
         if s.startswith("|") or s.startswith("---"):
             s = s.strip("|").replace("|", " — ")
         s = re.sub(r"\*\*(.+?)\*\*", r"\1", s).replace("`", "")
@@ -111,6 +125,9 @@ io.open(out, "w", encoding="utf-8").write(
     "// Сгенерировано kb.py — не править руками\nexport const KB = " +
     json.dumps(chunks, ensure_ascii=False, separators=(",", ":")) + ";\n")
 size = os.path.getsize(out) / 1024
-print("фрагментов: %d | kb.js: %.0f KB" % (len(chunks), size))
+print("фрагментов: %d | kb.js: %.0f KB | с разговорными фразами: %d" % (len(chunks), size, sum(1 for c in chunks if c.get("k"))))
+orphan = sorted(set(KEYS) - used_keys)
+if orphan:
+    print("   ! фразы без статьи (ключ не совпал): " + ", ".join(orphan[:10]) + (" …" if len(orphan) > 10 else ""))
 for d in sorted(set(c["d"] for c in chunks)):
     print("   %-36s %d" % (d, sum(1 for c in chunks if c["d"] == d)))

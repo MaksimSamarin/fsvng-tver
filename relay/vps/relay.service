@@ -32,6 +32,9 @@ CapabilityBoundingSet=
 AmbientCapabilities=
 MemoryMax=200M
 ReadOnlyPaths=/etc/relay /opt/relay
+# единственное место, куда реле пишет: журнал вопросов курсантов (/var/lib/relay)
+StateDirectory=relay
+StateDirectoryMode=0750
 
 [Install]
 WantedBy=multi-user.target

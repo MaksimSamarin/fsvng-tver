@@ -1,6 +1,7 @@
 // Помощник по уставам ФСВНГ — Cloudflare Worker + Workers AI
 // Модель крутится внутри Cloudflare: внешний Groq режет запросы с адресов воркеров (403 Forbidden).
 import { KB } from "./kb.js";
+import { VEC } from "./kb-vec.js";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const FALLBACK = "@cf/meta/llama-3.1-8b-instruct-fp8";   // без «-fp8» снята 30.05.2026; каталог: npx wrangler ai models list
@@ -11,6 +12,9 @@ const MIN_SCORE = 3;      // ниже этого считаем, что вопр
 const WEAK = 6;           // ниже этого фрагменты подобраны слабо — предупреждаем модель
 const RARE_PFX = 2.5;     // совпадение начала слова считается сильным, только если начало редкое
 const PFX = 4;            // «напали» и «нападение» режутся в разные основы, но начало общее
+// векторы (qwen3-embedding-4b, калибровка 18.09.2026): чужие вопросы дают к статьям 0.36–0.43, верные — 0.54–0.70.
+// cos ниже VEC_MIN не считается совпадением; без сильных слов принимаем только при VEC_ACCEPT; ниже VEC_STRONG — «слабо»
+const VEC_MIN = 0.45, VEC_ACCEPT = 0.50, VEC_STRONG = 0.58, RRF_K = 30;
 
 const SYSTEM = `Ты — инструктор Кадровой службы ФСВНГ (Росгвардия) на RP-сервере «Тверской» в GTA 5 RP.
 Отвечаешь курсантам, которые описывают игровую ситуацию и спрашивают, как действовать.
@@ -69,7 +73,7 @@ const STOP = new Set(
    + "тебя себя свой этого этом этих был была было были очень просто вообще именно потом после этим "
    + "теперь тогда значит пока чтобы скажи подскажи расскажи вопрос ситуация случай "
    + "кто кого кому кем чем чему сам сама сами наш ваш весь всех всем также либо более менее "
-   + "привет здравствуйте спасибо пожалуйста сколько давай ладно окей").split(" ").map(stem)
+   + "привет здравствуйте спасибо пожалуйста сколько давай ладно окей про без над под").split(" ").map(stem)
 );
 
 // Курсант пишет по-человечески, кодекс — по-канцелярски. Мостик между ними.
@@ -198,15 +202,41 @@ function docHint(q) {
 
 function pfx(t) { return t.length >= PFX ? t.slice(0, PFX) : null; }
 
-const INDEX = KB.map((c) => {
-  const toks = new Set(tokens(c.t + " " + c.x));
+const INDEX = KB.map((c, i) => {
+  // k — разговорные формулировки к статье (kb/keys.json): участвуют в поиске, модели не показываются
+  const toks = new Set(tokens(c.t + " " + c.x + " " + (c.k || "")));
   const pre = new Set();
   for (const t of toks) { const q = pfx(t); if (q) pre.add(q); }
-  // у статей УКПС нет названий («Статья 30») — вместо заголовка берём начало текста
+  // у статей УКПС нет названий («Статья 30») — вместо заголовка берём начало текста; фразы весят как заголовок
   const bare = /^Статья\s+[\d.]+\.?$/.test(c.t.trim());
-  const head = new Set(tokens(bare ? c.x.slice(0, 110) : c.t));
-  return { c, toks, pre, head };
+  const head = new Set(tokens((bare ? c.x.slice(0, 110) : c.t) + " " + (c.k || "")));
+  return { c, i, toks, pre, head };
 });
+
+// ---------- векторы статей (kb-vec.js) ----------
+const VN = VEC && VEC.n ? VEC.n : 0, VD = VEC && VEC.dims ? VEC.dims : 0;
+let VDATA = null;
+function vdata() {
+  if (VDATA || !VN) return VDATA;
+  const bin = atob(VEC.data);
+  const arr = new Int8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = (bin.charCodeAt(i) << 24) >> 24;
+  VDATA = arr;
+  return VDATA;
+}
+// косинусы вопроса ко всем статьям: векторы статей квантованы в int8 от единичных, поэтому dot/127 ≈ cos
+function cosAll(qv) {
+  const d = vdata();
+  if (!d || qv.length !== VD) return null;
+  const out = new Float32Array(VN);
+  for (let i = 0; i < VN; i++) {
+    let s = 0;
+    const off = i * VD;
+    for (let j = 0; j < VD; j++) s += d[off + j] * qv[j];
+    out[i] = s / 127;
+  }
+  return out;
+}
 
 // редкое слово весит больше частого — отдельно для основ и для их начал
 const DF = new Map(), DFP = new Map();
@@ -227,7 +257,7 @@ function hit(t, toks, pre, head, w) {
   return 0;
 }
 
-function pick(question, prev) {
+function pick(question, prev, qcos) {
   // уточняющий вопрос вроде «а после задержания?» сам по себе бессмыслен — добавляем прошлый
   const full = prev ? prev + " " + question : question;
   const base = tokens(full);
@@ -245,7 +275,7 @@ function pick(question, prev) {
   const self = penalty && /(что (?:мне|нам) (?:будет|грозит|светит)|мне за это|меня (?:уволят|накажут|посадят|выгонят)|получу ли)/i.test(question);
   const howto = ASK_HOWTO.test(question) && !penalty && !lookup;
 
-  const scored = INDEX.map(({ c, toks, pre, head }) => {
+  const scored = INDEX.map(({ c, i, toks, pre, head }) => {
     let s = 0;
     // совпадения по началу слова только добавляют вес; без единого точного попадания фрагмент не считается найденным
     let strong = false;
@@ -274,17 +304,40 @@ function pick(question, prev) {
     if (self && c.r && c.r.indexOf("ДУ ") === 0) s *= 1.3;
     if (self && isCode) s *= 0.7;
     if (howto && !isCode) s *= 1.3;
-    return { c, s };
+    return { c, i, s };
   })
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
 
-  if (!scored.length || scored[0].s < MIN_SCORE) return [];
-  const out = scored.slice(0, TOP_K).map((x) => x.c);
-  out.penalty = penalty;      // наверху по этим флагам выбирается формат ответа
-  out.lookup = lookup;
-  out.weak = scored[0].s < WEAK;
-  return out;
+  // номер статьи, названный документ, пересказ — точность важнее, ищем только словами
+  const exact = lookup || !!hint || num.length > 0;
+  if (!qcos || exact) {
+    if (!scored.length || scored[0].s < MIN_SCORE) return [];
+    const out = scored.slice(0, TOP_K).map((x) => x.c);
+    out.penalty = penalty;      // наверху по этим флагам выбирается формат ответа
+    out.lookup = lookup;
+    out.weak = scored[0].s < WEAK;
+    out.search = "lexical";
+    return out;
+  }
+
+  // гибрид: слияние рангов словесного и векторного поиска (RRF)
+  const fused = new Map();
+  scored.slice(0, 30).forEach((x, r) => fused.set(x.i, (fused.get(x.i) || 0) + 1 / (RRF_K + r + 1)));
+  const byVec = [];
+  for (let i = 0; i < qcos.length; i++) if (qcos[i] >= VEC_MIN) byVec.push(i);
+  byVec.sort((a, b) => qcos[b] - qcos[a]);
+  byVec.slice(0, 30).forEach((i, r) => fused.set(i, (fused.get(i) || 0) + 1 / (RRF_K + r + 1)));
+  const bestCos = byVec.length ? qcos[byVec[0]] : 0;
+  const lexOk = scored.length > 0 && scored[0].s >= MIN_SCORE;
+  if (!lexOk && bestCos < VEC_ACCEPT) return [];
+  const ranked = [...fused.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP_K).map(([i]) => INDEX[i].c);
+  ranked.penalty = penalty;
+  ranked.lookup = lookup;
+  ranked.weak = (!lexOk || scored[0].s < WEAK) && bestCos < VEC_STRONG;
+  ranked.search = "hybrid";
+  ranked.bestCos = bestCos;
+  return ranked;
 }
 
 // --- вычищаем из «Основание:» статьи, которых модели не давали ---
@@ -344,6 +397,36 @@ async function thinkRelay(env, messages) {
   if (!r.ok) throw new Error("реле " + r.status + ": " + txt.slice(0, 200));
   const d = JSON.parse(txt);
   return { answer: (d.answer || "").trim(), model: d.model || "openrouter" };
+}
+
+// вектор вопроса — через реле (та же модель, что считала статьи). Не ответило за 3 с — ищем словами.
+async function embedQuery(env, text, q) {
+  if (!env.RELAY_URL || !env.RELAY_SECRET || !VN) return null;
+  const url = env.RELAY_URL.replace(/\/api\/chat\/?$/, "/api/embed");
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 4500);   // холодный вызов эмбеддера через реле бывает дольше 3 с
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Relay-Key": env.RELAY_SECRET },
+      body: JSON.stringify({ input: [text], q }),
+      signal: ctl.signal,
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const v = d.vectors && d.vectors[0];
+    if (!v || v.length !== VD) return null;
+    let n = 0;
+    for (const x of v) n += x * x;
+    n = Math.sqrt(n) || 1;
+    const f = new Float32Array(VD);
+    for (let j = 0; j < VD; j++) f[j] = v[j] / n;
+    return f;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function think(env, model, messages) {
@@ -408,7 +491,10 @@ export default {
 
     // для уточнений вроде «а если он сопротивляется?» нужен весь недавний разговор, не только последняя реплика
     const prevQ = hist.map((p) => p.q).join(" ");
-    const found = pick(q, prevQ);
+    // для уточнений вроде «а если он сопротивляется?» в вектор идёт и прошлая реплика
+    const lastQ = hist.length ? hist[hist.length - 1].q : "";
+    const qv = await embedQuery(env, lastQ ? lastQ + ". " + q : q, q);
+    const found = pick(q, prevQ, qv ? cosAll(qv) : null);
     if (!found.length)
       return Response.json(
         { answer: "В документах этого нет. Переформулируй вопрос или уточни у старшего состава.", refs: [] },
@@ -466,7 +552,9 @@ export default {
     const refs = [...new Set(found.map((c) => c.r).filter(Boolean))];
     answer = fixRefs(answer || "Пустой ответ, переформулируй вопрос.", refs);
 
-    return Response.json(via ? { answer, refs, via } : { answer, refs }, { headers: cors(origin) });
+    const resp = { answer, refs, search: found.search || "lexical" };
+    if (via) resp.via = via;
+    return Response.json(resp, { headers: cors(origin) });
   },
 };
 
