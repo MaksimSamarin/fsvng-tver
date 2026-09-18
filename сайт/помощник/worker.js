@@ -427,7 +427,7 @@ export default {
         const m1 = String(e.message || e), m2 = String(e2.message || e2);
         const limit = /limit|quota|capacity|429|exceed|allocation|used up|4006/i.test(m1 + m2);
         return Response.json(
-          { error: limit ? "Дневной лимит помощника исчерпан — заработает после полуночи по UTC." : "Помощник временно недоступен.",
+          { error: limit ? "Дневной лимит помощника исчерпан — заработает после 03:00 по Москве. Уставы и кодексы на вкладках доступны." : "Помощник временно недоступен.",
             detail: ("основная: " + m1.slice(0, 200) + " | запасная: " + m2.slice(0, 200)) },
           { status: 502, headers: cors(origin) }
         );
