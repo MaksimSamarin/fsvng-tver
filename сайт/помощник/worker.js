@@ -331,6 +331,21 @@ function cors(origin) {
   };
 }
 
+// Резерв на случай исчерпанного лимита Workers AI: реле на Vercel → OpenRouter (см. relay/README.md).
+// Напрямую нельзя — подзапрос воркера несёт страну посетителя, а OpenRouter гео-блокирует Россию.
+async function thinkRelay(env, messages) {
+  if (!env.RELAY_URL || !env.RELAY_SECRET) throw new Error("реле не настроено: нет RELAY_URL/RELAY_SECRET");
+  const r = await fetch(env.RELAY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Relay-Key": env.RELAY_SECRET },
+    body: JSON.stringify({ messages, max_tokens: 550 }),
+  });
+  const txt = await r.text();
+  if (!r.ok) throw new Error("реле " + r.status + ": " + txt.slice(0, 200));
+  const d = JSON.parse(txt);
+  return { answer: (d.answer || "").trim(), model: d.model || "openrouter" };
+}
+
 async function think(env, model, messages) {
   const out = await env.AI.run(model, { temperature: 0.2, max_tokens: 550, messages });
   return (out.response || "").trim();
@@ -416,28 +431,42 @@ export default {
     });
 
     let answer = "";
+    let via = "";
     try {
       answer = await think(env, MODEL, messages);
     } catch (e) {
-      // основная модель может быть занята или выбран дневной лимит — пробуем лёгкую
-      try {
-        answer = await think(env, FALLBACK, messages);
-      } catch (e2) {
-        // показываем обе ошибки: без первой не понять, лимит это или сломалась модель
-        const m1 = String(e.message || e), m2 = String(e2.message || e2);
-        const limit = /limit|quota|capacity|429|exceed|allocation|used up|4006/i.test(m1 + m2);
-        return Response.json(
-          { error: limit ? "Дневной лимит помощника исчерпан — заработает после 03:00 по Москве. Уставы и кодексы на вкладках доступны." : "Помощник временно недоступен.",
-            detail: ("основная: " + m1.slice(0, 200) + " | запасная: " + m2.slice(0, 200)) },
-          { status: 502, headers: cors(origin) }
-        );
+      const m1 = String(e.message || e);
+      const limit = /limit|quota|capacity|429|exceed|allocation|used up|4006/i.test(m1);
+      let m2 = "";
+      // лимит общий на аккаунт — запасная модель Workers AI упадёт так же, её пробуем только при других сбоях
+      if (!limit) {
+        try { answer = await think(env, FALLBACK, messages); }
+        catch (e2) { m2 = String(e2.message || e2); }
+      }
+      if (!answer) {
+        // последний рубеж — реле на Vercel с бесплатными моделями OpenRouter
+        try {
+          const r = await thinkRelay(env, messages);
+          answer = r.answer; via = r.model;
+        } catch (e3) {
+          const m3 = String(e3.message || e3);
+          const relayOff = /не настроено/.test(m3);
+          return Response.json(
+            { error: limit
+                ? (relayOff ? "Дневной лимит помощника исчерпан — заработает после 03:00 по Москве. Уставы и кодексы на вкладках доступны."
+                            : "Лимит помощника исчерпан, резервная модель тоже не ответила. Попробуй позже — уставы и кодексы на вкладках доступны.")
+                : "Помощник временно недоступен.",
+              detail: "основная: " + m1.slice(0, 160) + (m2 ? " | запасная: " + m2.slice(0, 160) : "") + " | реле: " + m3.slice(0, 160) },
+            { status: 502, headers: cors(origin) }
+          );
+        }
       }
     }
 
     const refs = [...new Set(found.map((c) => c.r).filter(Boolean))];
     answer = fixRefs(answer || "Пустой ответ, переформулируй вопрос.", refs);
 
-    return Response.json({ answer, refs }, { headers: cors(origin) });
+    return Response.json(via ? { answer, refs, via } : { answer, refs }, { headers: cors(origin) });
   },
 };
 

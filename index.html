@@ -1629,6 +1629,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
         var html=fmt(res.d.answer||"Пустой ответ.");
         if(res.d.refs&&res.d.refs.length&&!/Основание:/i.test(res.d.answer||""))
           html+='<div class="ai-refs">Смотрел: '+esc(res.d.refs.join(" · "))+"</div>";
+        if(res.d.via) html+='<div class="ai-refs">Ответила резервная модель: '+esc(res.d.via)+"</div>";
         add("bot", linkRefs(html));
       })
       .catch(function(){ wait.remove(); add("err","Нет связи с помощником. Проверь интернет.") })
