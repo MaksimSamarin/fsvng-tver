@@ -28,6 +28,7 @@ OR_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 PROVIDERS = [p.strip() for p in os.environ.get("PROVIDERS", "openrouter,groq").split(",") if p.strip()]
 GROQ_MODELS = [m.strip() for m in os.environ.get("GROQ_MODELS", "qwen/qwen3.8-27b,openai/gpt-oss-120b").split(",") if m.strip()]
+PAID_MODEL = os.environ.get("PAID_MODEL", "").strip()   # платная модель OpenRouter — самый последний рубеж, нужен баланс
 TLS_CERT = os.environ.get("TLS_CERT", "/etc/relay/tls/fullchain.pem")
 TLS_KEY = os.environ.get("TLS_KEY", "/etc/relay/tls/privkey.pem")
 MAX_BODY = 64 * 1024
@@ -134,6 +135,14 @@ def ask(messages, max_tokens, want_model):
                 if ans:
                     return ans, "groq/" + m, errors
                 errors.append(err)
+    # всё бесплатное выбрано за день — платная модель за счёт баланса OpenRouter (~15 центов на тысячу вопросов)
+    if PAID_MODEL and OR_KEY:
+        ans, err = chat("https://openrouter.ai/api/v1/chat/completions", OR_KEY, PAID_MODEL, messages, max_tokens,
+                        {"HTTP-Referer": "https://maksimsamarin.github.io/fsvng-tver/", "X-Title": "FSVNG assistant"},
+                        reasoning_off=True)
+        if ans:
+            return ans, "openrouter-paid/" + PAID_MODEL, errors
+        errors.append("платная " + err)
     return None, None, errors
 
 
@@ -242,7 +251,8 @@ def main():
     srv = Server(("0.0.0.0", PORT), Handler)
     srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
     threading.Thread(target=watch_cert, args=(ctx,), daemon=True).start()
-    log("реле слушает :%d, провайдеры: %s" % (PORT, ", ".join(p for p in PROVIDERS if (p == "openrouter" and OR_KEY) or (p == "groq" and GROQ_KEY))))
+    log("реле слушает :%d, провайдеры: %s%s" % (PORT, ", ".join(p for p in PROVIDERS if (p == "openrouter" and OR_KEY) or (p == "groq" and GROQ_KEY)),
+                                              (", платный рубеж: " + PAID_MODEL) if PAID_MODEL and OR_KEY else ""))
     srv.serve_forever()
 
 
