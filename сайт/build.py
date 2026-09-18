@@ -151,10 +151,11 @@ def code_body(paras):
     return "".join(html_out)
 
 
-def parse_code(path, cls):
-    """Разбирает кодекс: разделы, главы, статьи, составы с приоритетом розыска."""
+def parse_code(path, cls, per_chapter=False):
+    """Разбирает кодекс или закон: части, разделы, главы, статьи, составы с приоритетом розыска.
+    per_chapter — статьи нумеруются заново в каждой главе (ФЗ-8, ФЗ-10): показываем «3.2» = статья 2 главы III."""
     raw = io.open(path, encoding="utf-8-sig").read().replace("**", "")
-    out, nch = [], 0
+    out, nch, gch = [], 0, 0
     art = None
 
     def close():
@@ -178,20 +179,24 @@ def parse_code(path, cls):
         if not l or l.startswith("---") or CODE_SKIP.match(l) or CODE_HEAD.match(l):
             continue
 
-        if re.match(r"^РАЗДЕЛ\s+[IVXL]+", l):
+        # «ЧАСТЬ ПЕРВАЯ» в УПК — заголовок; «Часть 1. Хранение…» внутри статьи ФЗ-8 — обычный абзац
+        if re.match(r"^(РАЗДЕЛ|Раздел)\s+[IVXL0-9]+|^ЧАСТЬ\s+[А-Я]+", l):
             close()
-            chapter(l, re.sub(r"^РАЗДЕЛ\s+[IVXL]+\.?\s*", "", l) or l)
+            chapter(l, re.sub(r"^(РАЗДЕЛ|Раздел|ЧАСТЬ)\s+[IVXL0-9А-Я]+\.?\s*", "", l) or l)
             continue
 
-        if re.match(r"^Глава\s+[0-9]+", l):
+        if re.match(r"^(Глава|ГЛАВА)\s+[0-9IVXL]+", l):
             close()
-            chapter(l, re.sub(r"^Глава\s+[0-9]+\.?\s*", "", l) or l, " ch2")
+            gch += 1
+            chapter(l, re.sub(r"^(Глава|ГЛАВА)\s+[0-9IVXL]+\.?\s*", "", l) or l, " ch2")
             continue
 
         m = re.match(r"^Статья\s+([0-9]+(?:\.[0-9]+)*)\.?\s*(.*)$", l)
         if m:
             close()
             num, title = m.group(1), m.group(2).strip()
+            if per_chapter:
+                num = "%d.%s" % (gch, num)
             art = {"num": num, "title": title or ("Статья " + num),
                    "id": "%s-a%s" % (cls, num.replace(".", "-")), "raw": []}
             continue
@@ -709,6 +714,42 @@ ug = dochead("dc", "Законы РО", "Уголовный кодекс",
              ["%d статей" % ug_body.count('class="art"'), "8 разделов",
               "Раздел VIII \u2014 <b>против военной службы</b>"]) + ug_body
 
+pk_body = parse_code(os.path.join(Z, "упк-ро.md"), "pk")
+fo_body = parse_code(os.path.join(Z, "фз-2-об-обороне.md"), "fo")
+fw_body = parse_code(os.path.join(Z, "фз-8-оружие.md"), "fw", per_chapter=True)
+fs_body = parse_code(os.path.join(Z, "фз-10-должностные-лица.md"), "fs", per_chapter=True)
+fe_body = parse_code(os.path.join(Z, "кодекс-этики.md"), "fe")
+fm_body = parse_code(os.path.join(Z, "фкз-3-правовые-режимы.md"), "fm")
+NCOUNT = {k: v.count('class="art"') for k, v in (("pk", pk_body), ("fo", fo_body), ("fw", fw_body), ("fs", fs_body), ("fe", fe_body), ("fm", fm_body))}
+
+pk = dochead("dc", "Кодексы РО", "Уголовно-процессуальный кодекс",
+             "Как ведётся уголовное дело: возбуждение, участники, задержание и меры пресечения, следствие и суд. "
+             "Это порядок для следствия и суда, а не список наказаний — наказания в Уголовном кодексе.",
+             ["%d статей" % NCOUNT["pk"], "47 глав", "Задержание и права задержанного"]) + pk_body
+
+fo = dochead("da", "Законы РО", "Об обороне",
+             "Что такое Вооружённые Силы РО, чем они занимаются, какие у них полномочия и кто за ними надзирает.",
+             ["%d статей" % NCOUNT["fo"], "5 глав", "Основа полномочий армии"]) + fo_body
+
+fw = dochead("da", "Законы РО", "Об оружии",
+             "Виды оружия и спецсредств, служебное оружие, самооборона, ношение, хранение и ответственность. "
+             "Статьи здесь нумеруются внутри глав: «3.2» — статья 2 главы III.",
+             ["%d статей" % NCOUNT["fw"], "10 глав", "Самооборона \u2014 <b>глава VII</b>"]) + fw_body
+
+fs = dochead("da", "Законы РО", "Об особом правовом статусе должностных лиц",
+             "Кто обладает неприкосновенностью и правовой защитой и как в отношении таких лиц ведётся расследование. "
+             "Статьи нумеруются внутри глав: «2.1» — статья 1 главы II.",
+             ["%d статей" % NCOUNT["fs"], "3 главы", "Неприкосновенность"]) + fs_body
+
+fe = dochead("da", "Законы РО", "Кодекс этики и служебного поведения",
+             "Принципы и правила поведения государственных служащих — распространяется и на военнослужащих. "
+             "Требования к внешнему виду и ответственность за нарушение.",
+             ["%d статей" % NCOUNT["fe"], "5 глав", "Действует для <b>военнослужащих</b>"]) + fe_body
+
+fm = dochead("da", "Законы РО", "О вводимых правовых режимах",
+             "Военное положение и чрезвычайное положение: кто вводит, что меняется для граждан и служб, что запрещено.",
+             ["%d статей" % NCOUNT["fm"], "2 главы", "Военное и чрезвычайное положение"]) + fm_body
+
 ap = dochead("da", "Законы РО", "Кодекс об административных правонарушениях",
              "Проступки, за которые не сажают: штрафы, предупреждения и порядок производства по делу. "
              "Сюда попадают мелкое хулиганство, неповиновение и оскорбление.",
@@ -718,8 +759,11 @@ ap = dochead("da", "Законы РО", "Кодекс об администра�
 tpl = io.open(TPL, encoding="utf-8").read()
 tpl = tpl.replace("<!--PANE:MEMO-->", '<div class="pane" id="p-memo">%s</div>' % chanlinks(memo))
 tpl = tpl.replace("<!--PANE:EXAM-->", '<div class="pane" id="p-ex" hidden>%s</div>' % chanlinks(exam))
-for k, v in (("vu", vu), ("du", du), ("uk", uk), ("le", le), ("ru", ru), ("ug", ug), ("ap", ap)):
+for k, v in (("vu", vu), ("du", du), ("uk", uk), ("le", le), ("ru", ru), ("ug", ug), ("ap", ap),
+             ("pk", pk), ("fo", fo), ("fw", fw), ("fs", fs), ("fe", fe), ("fm", fm)):
     tpl = tpl.replace("<!--INSERT:%s-->" % k, chanlinks(v))
+for k, n in NCOUNT.items():
+    tpl = tpl.replace("<!--N:%s-->" % k, str(n))
 
 # адрес воркера-помощника: пока файла нет — кнопка на странице не появляется
 AIF = os.path.join(SRCDIR, "ai_url.txt")

@@ -36,11 +36,23 @@ for fn, pref, name in CH:
     if dup: warn("%s: повторы номеров в оригинале — %s" % (name, ", ".join(dup)))
 # кодексы РО лежат в правовой базе как markdown с форума
 ZAK = os.path.join(ROOT, "правовая", "законы")
-CODES = [("уголовный-кодекс.md", "ug", "Уголовный кодекс"),
-         ("коап-ро.md", "ap", "КоАП РО")]
-for fn, pref, name in CODES:
+CODES = [("уголовный-кодекс.md", "ug", "Уголовный кодекс", False),
+         ("коап-ро.md", "ap", "КоАП РО", False),
+         ("упк-ро.md", "pk", "УПК РО", False),
+         ("фз-2-об-обороне.md", "fo", "ФЗ «Об обороне»", False),
+         ("фз-8-оружие.md", "fw", "ФЗ «Об оружии»", True),           # статьи нумеруются внутри глав
+         ("фз-10-должностные-лица.md", "fs", "ФЗ «О статусе должностных лиц»", True),
+         ("кодекс-этики.md", "fe", "Кодекс этики", False),
+         ("фкз-3-правовые-режимы.md", "fm", "ФКЗ «О правовых режимах»", False)]
+for fn, pref, name, per_chapter in CODES:
     src = arts(read(os.path.join(ZAK, fn)))
     total_src += len(src)
+    if per_chapter:
+        i = site.find('id="p-%s"' % pref); j = site.find('<div class="pane"', i + 20)
+        got = site[i:(j if j > 0 else len(site))].count('class="art"')
+        if got == len(src): ok("%s — все %d статей на месте (нумерация по главам)" % (name, got))
+        else: err("%s: на сайте %d статей, в оригинале %d" % (name, got, len(src)))
+        continue
     miss = [a for a in src if ('id="%s-a%s"' % (pref, a.replace(".", "-"))) not in site]
     if miss: err("%s: не попали на сайт статьи %s" % (name, ", ".join(miss[:12])))
     else: ok("%s — все %d статей на месте" % (name, len(src)))
@@ -99,7 +111,8 @@ if site.count('src=""') or "src=\"\"" in site: err("есть пустые src у
 head("Структура страницы")
 for pid, nm in [("p-memo","Памятка"),("p-vu","Устав ВС"),("p-du","Дисциплинарный"),
                 ("p-uk","Караульный"),("p-le","Лекции"),("p-ru","Повышение"),("p-ex","Экзамен"),
-                ("p-ug","Уголовный кодекс"),("p-ap","КоАП")]:
+                ("p-ug","Уголовный кодекс"),("p-ap","КоАП"),("p-pk","УПК"),("p-fo","Об обороне"),
+                ("p-fw","Об оружии"),("p-fs","Должностные лица"),("p-fe","Кодекс этики"),("p-fm","Правовые режимы")]:
     if 'id="%s"' % pid in site: ok("вкладка «%s» на месте" % nm)
     else: err("нет вкладки «%s»" % nm)
 for cnt, need, what in [(site.count('class="blk"'), 12, "разделов памятки"),
@@ -165,7 +178,14 @@ else: err("метки приоритета розыска потерялись")
 
 # 5b. баланс тегов в панелях — ловит «уехавшие» блоки
 head("Целостность панелей")
-panes=["p-memo","p-ru","p-le","p-vu","p-du","p-uk","p-ug","p-ap","p-ex"]
+panes=["p-memo","p-ru","p-le","p-vu","p-du","p-uk","p-ug","p-ap","p-pk","p-fo","p-fw","p-fs","p-fe","p-fm","p-ex"]
+# шапка: группы с выпадающими списками и селект для телефона
+for frag, what in [('id="tg-k"', "группа «Курсанту»"), ('id="tg-u"', "группа «Уставы»"), ('id="tg-c"', "группа «Кодексы»"),
+                   ('id="tg-z"', "группа «Законы»"), ('id="docsel"', "селект документов для телефона"), ('id="toTop"', "кнопка «наверх»")]:
+    if frag in site: ok("%s на месте" % what)
+    else: err("в шапке нет: %s" % what)
+if site.count("<!--N:") == 0: ok("счётчики статей в шапке подставлены")
+else: err("в шапке остались неподставленные счётчики статей")
 # хвост страницы после последней панели — виджет помощника, в подсчёт панелей не входит
 tail_at = site.find('<button class="ai-btn"')
 body = site[:tail_at] if tail_at > 0 else site

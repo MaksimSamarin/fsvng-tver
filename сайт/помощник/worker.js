@@ -103,8 +103,8 @@ const SYN = {
   "пропуск": "пропускной режим пропуск допуск территорию",
   "сбежа": "побег уклонение скрылся",
   "убежа": "побег уклонение скрылся",
-  "напад": "нападение посягательство насилие применение силы оружия оборона",
-  "напал": "нападение посягательство насилие применение силы оружия оборона",
+  "напад": "нападение посягательство насилие применение силы оружия оборона представителя власти",
+  "напал": "нападение посягательство насилие применение силы оружия оборона представителя власти",
   "атак": "нападение посягательство насилие применение силы оружия оборона",
   "бьют": "побои насилие применение силы оборона",
   "драк": "побои хулиганство насилие",
@@ -194,6 +194,12 @@ const HINTS = [
   ["уголовн", "УК"], [" ук ", "УК"], ["ук ро", "УК"],
   ["коап", "КоАП"], ["админист", "КоАП"],
   ["устав вс", "ВУ"], [" ву ", "ВУ"],
+  ["упк", "УПК"], ["процессуальн", "УПК"],
+  ["об обороне", "ФЗ-2"], ["фз-2", "ФЗ-2"],
+  ["об оружии", "ФЗ-8"], ["закон об оружии", "ФЗ-8"], ["фз-8", "ФЗ-8"],
+  ["неприкосновен", "ФЗ-10"], ["фз-10", "ФЗ-10"],
+  ["кодекс этики", "Кодекс этики"], ["этик", "Кодекс этики"],
+  ["военном положении", "ФКЗ-3"], ["военное положение", "ФКЗ-3"], ["чрезвычайн", "ФКЗ-3"], ["фкз", "ФКЗ-3"],
 ];
 function docHint(q) {
   const low = " " + q.toLowerCase().replace(/ё/g, "е") + " ";
@@ -262,6 +268,7 @@ function pick(question, prev, qcos) {
   // уточняющий вопрос вроде «а после задержания?» сам по себе бессмыслен — добавляем прошлый
   const full = prev ? prev + " " + question : question;
   const base = tokens(full);
+  const baseSet = new Set(base.filter((t) => !STOP.has(t)));
   // синонимы раскрываем только для текущей реплики: «на КПП» из прошлого вопроса не должно тянуть запреты КПП в ответ про задержанного
   const extra = [];
   const low = question.toLowerCase().replace(/ё/g, "е");
@@ -279,11 +286,13 @@ function pick(question, prev, qcos) {
   const scored = INDEX.map(({ c, i, toks, pre, head }) => {
     let s = 0;
     // совпадения по началу слова только добавляют вес; без единого точного попадания фрагмент не считается найденным
-    let strong = false;
+    let strong = false, bh = 0, eh = 0;
     const isStrong = (t) => !STOP.has(t) && (toks.has(t) || (pfx(t) && pre.has(pfx(t)) && idfp(pfx(t)) >= RARE_PFX));
-    for (const t of new Set(base)) { s += hit(t, toks, pre, head, 1); if (isStrong(t)) strong = true; }
-    for (const t of new Set(extra)) { s += hit(t, toks, pre, head, 0.7); if (isStrong(t)) strong = true; }
+    for (const t of baseSet) { const v = hit(t, toks, pre, head, 1); if (v > 0) { s += v; bh++; } if (isStrong(t)) strong = true; }
+    for (const t of new Set(extra)) { const v = hit(t, toks, pre, head, 0.7); if (v > 0) { s += v; eh++; } if (isStrong(t)) strong = true; }
     if (!strong) s = 0;
+    // сколько значимых слов вопроса нашлось: одно слово из трёх — «погода в Москве» цепляет «Правительство Москвы»
+    const h = bh + (eh ? 1 : 0);
     const mine = hint && c.r && c.r.indexOf(hint + " ") === 0;
     if (hint && mine) s += 3;
     for (const n of num) {
@@ -293,22 +302,26 @@ function pick(question, prev, qcos) {
       if (!hint) s += 12;
       else if (mine) s += 20;
     }
-    // процедура для полиции и суда (КоАП главы 12–19) и общая часть УК (ст. 1–50) курсанту нужны редко
+    // процедура для полиции и суда (КоАП главы 12–19, весь УПК) и общая часть УК (ст. 1–50) курсанту нужны редко
     if (!lookup && c.r) {
       const mk = c.r.match(/^КоАП ст\. (\d+)\./);
       const mu = c.r.match(/^УК ст\. (\d+)/);
       if ((mk && +mk[1] >= 12 && hint !== "КоАП") || (mu && +mu[1] <= 50 && hint !== "УК")) s *= 0.5;
+      if (c.r.indexOf("УПК ") === 0 && hint !== "УПК") s *= 0.6;
     }
     // спрашивают про наказание — вперёд кодексы; спрашивают про порядок службы — уставы
     const isCode = !!c.r && (c.r.indexOf("УК ") === 0 || c.r.indexOf("КоАП ") === 0);
-    if (penalty && !self && isCode) s *= 1.4;
+    if (penalty && !self && isCode) s *= 1.7;   // «что грозит» — кодексы должны перебивать фразы уставов про КПП
     if (self && c.r && c.r.indexOf("ДУ ") === 0) s *= 1.3;
     if (self && isCode) s *= 0.7;
     if (howto && !isCode) s *= 1.3;
-    return { c, i, s };
+    return { c, i, s, h };
   })
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
+
+  // слабое совпадение: низкий балл или из нескольких значимых слов вопроса нашлось только одно
+  const lexWeak = !scored.length || scored[0].s < WEAK || (baseSet.size >= 2 && scored[0].h < 2);
 
   // номер статьи, названный документ, пересказ — точность важнее, ищем только словами
   const exact = lookup || !!hint || num.length > 0;
@@ -317,7 +330,7 @@ function pick(question, prev, qcos) {
     const out = scored.slice(0, TOP_K).map((x) => x.c);
     out.penalty = penalty;      // наверху по этим флагам выбирается формат ответа
     out.lookup = lookup;
-    out.weak = scored[0].s < WEAK;
+    out.weak = lexWeak;
     out.search = "lexical";
     return out;
   }
@@ -335,14 +348,18 @@ function pick(question, prev, qcos) {
   const ranked = [...fused.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP_K).map(([i]) => INDEX[i].c);
   ranked.penalty = penalty;
   ranked.lookup = lookup;
-  ranked.weak = (!lexOk || scored[0].s < WEAK) && bestCos < VEC_STRONG;
+  ranked.weak = (!lexOk || lexWeak) && bestCos < VEC_STRONG;
   ranked.search = "hybrid";
   ranked.bestCos = bestCos;
   return ranked;
 }
 
 // --- вычищаем из «Основание:» статьи, которых модели не давали ---
-const REF_RE = /(УКПС|КоАП|ДУ|ВУ|УК)\s*(?:ст\.?\s*)?(\d+(?:\.\d+)*)|ст\.?\s*(\d+(?:\.\d+)*)\s*(УКПС|КоАП|ДУ|ВУ|УК)/gi;
+// сокращения документов в ссылках: длинные раньше коротких, иначе «УК» съест «УКПС»
+const ABBRS = "УКПС|КоАП|УПК|ФКЗ-3|ФЗ-10|ФЗ-2|ФЗ-8|Кодекс этики|ДУ|ВУ|УК";
+const REF_RE = new RegExp("(" + ABBRS + ")\\s*(?:ст\\.?\\s*)?(\\d+(?:\\.\\d+)*)|ст\\.?\\s*(\\d+(?:\\.\\d+)*)\\s*(" + ABBRS + ")", "gi");
+const CANON = {};
+for (const a of ABBRS.split("|")) CANON[a.toLowerCase()] = a;
 
 function fixRefs(answer, allowed) {
   const ok = new Set(allowed);
@@ -355,7 +372,7 @@ function fixRefs(answer, allowed) {
     let m;
     REF_RE.lastIndex = 0;
     while ((m = REF_RE.exec(line))) {
-      const abbr = (m[1] || m[4] || "").toUpperCase().replace("КОАП", "КоАП");
+      const abbr = CANON[(m[1] || m[4] || "").toLowerCase()] || "";
       const num = m[2] || m[3];
       const ref = abbr + " ст. " + num;
       if (ok.has(ref) && !keep.includes(ref)) keep.push(ref);

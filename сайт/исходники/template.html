@@ -53,7 +53,43 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 .tsep{width:1px;height:22px;background:var(--rule);margin:0 8px;align-self:center}
 @media(max-width:760px){.tgroup{display:none}.tsep{margin:0 4px}}
 .tb-ex{--tcol:var(--ink-soft)}
-.tb-ug{--tcol:var(--law)}.tb-ap{--tcol:var(--law-2)}
+.tb-ug{--tcol:var(--law)}.tb-ap{--tcol:var(--law-2)}.tb-pk{--tcol:var(--law)}
+.tb-fo,.tb-fw,.tb-fs,.tb-fe,.tb-fm{--tcol:var(--law-2)}
+
+/* группы документов: кнопка группы показывает открытый документ, список — по клику */
+.tabs{gap:4px}
+.tg{position:relative}
+#tg-k{--tcol:var(--field-soft)}#tg-u{--tcol:var(--field)}#tg-c{--tcol:var(--law)}#tg-z{--tcol:var(--law-2)}
+.tgb{font-family:var(--f-display);font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;background:none;border:0;
+  border-bottom:3px solid transparent;color:var(--ink-faint);padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.tgb:hover{color:var(--ink);background:var(--paper-2)}
+.tg.on .tgb{color:var(--ink);border-bottom-color:var(--tcol);font-weight:700}
+.tgb .cur{color:var(--tcol);font-weight:700}
+.tgb .cur:not(:empty)::before{content:"·";margin-right:8px;color:var(--ink-faint);font-weight:400}
+.tgb .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);opacity:.55;flex:none}
+.tg.open .tgb .chev{transform:rotate(-135deg) translateY(2px)}
+.menu{position:absolute;top:100%;left:0;z-index:70;min-width:260px;background:var(--card);border:1px solid var(--rule);
+  box-shadow:0 12px 34px rgba(0,0,0,.28);padding:6px;display:none;flex-direction:column;gap:2px}
+.tg.open .menu{display:flex}
+.menu .tab{width:100%;justify-content:space-between;border-bottom:0;border-left:3px solid transparent;padding:9px 12px;
+  text-transform:none;letter-spacing:.02em;font-size:15px;color:var(--ink-soft)}
+.menu .tab:hover{color:var(--ink)}
+.menu .tab[aria-selected="true"]{border-left-color:var(--tcol);background:var(--paper-2);color:var(--ink)}
+.tab.top{margin-left:auto}
+.docsel{display:none}
+@media(max-width:760px){
+  .tg,.tab.top{display:none}
+  .docsel{display:block;width:100%;font-family:var(--f-display);font-size:16px;padding:11px 12px;background:var(--card);
+    border:1px solid var(--rule);color:var(--ink);border-radius:0}
+}
+
+/* кнопка «наверх» — слева внизу, справа живёт помощник */
+.totop{position:fixed;left:20px;bottom:20px;z-index:60;width:44px;height:44px;border-radius:50%;border:1px solid var(--rule);
+  background:var(--card);color:var(--field);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);
+  display:flex;align-items:center;justify-content:center;font-family:var(--f-display)}
+.totop:hover{background:var(--field);color:var(--paper);border-color:var(--field)}
+@media(max-width:560px){.totop{left:12px;bottom:12px;width:40px;height:40px}}
 
 /* каркас */
 .shell{display:grid;grid-template-columns:238px minmax(0,1fr);gap:40px;align-items:start;margin-top:26px}
@@ -437,23 +473,44 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 <header class="cover">
   <div class="stamp"><span class="dot"></span>Федеральная служба войск национальной гвардии · Тверской</div>
   <h1>База знаний ФСВНГ</h1>
-  <p class="lede">Памятка курсанта, полные тексты трёх уставов, Уголовный кодекс и КоАП, лекции, правила фракции и экзамен — в одном месте. Никуда переходить не нужно.</p>
+  <p class="lede">Памятка курсанта, три устава, три кодекса, пять законов, лекции, правила фракции и экзамен — в одном месте. Никуда переходить не нужно.</p>
   <div class="tabs" role="tablist">
-    <span class="tgroup">Для курсанта</span>
-    <button class="tab" role="tab" aria-selected="true" data-p="p-memo">Памятка<span class="badge">12</span></button>
-    <button class="tab tb-ru" role="tab" aria-selected="false" data-p="p-ru">Повышение<span class="badge">1 → 6</span></button>
-    <button class="tab tb-le" role="tab" aria-selected="false" data-p="p-le">Лекции<span class="badge">6 тем</span></button>
-    <span class="tsep"></span>
-    <span class="tgroup">Документы</span>
-    <button class="tab tb-vu" role="tab" aria-selected="false" data-p="p-vu">Устав ВС<span class="badge">50 ст.</span></button>
-    <button class="tab tb-du" role="tab" aria-selected="false" data-p="p-du">Дисциплинарный<span class="badge">37 ст.</span></button>
-    <button class="tab tb-uk" role="tab" aria-selected="false" data-p="p-uk">Караульный<span class="badge">44 ст.</span></button>
-    <span class="tsep"></span>
-    <span class="tgroup">Законы РО</span>
-    <button class="tab tb-ug" role="tab" aria-selected="false" data-p="p-ug">Уголовный<span class="badge">117 ст.</span></button>
-    <button class="tab tb-ap" role="tab" aria-selected="false" data-p="p-ap">КоАП<span class="badge">136 ст.</span></button>
-    <span class="tsep"></span>
-    <button class="tab tb-ex" role="tab" aria-selected="false" data-p="p-ex">Экзамен<span class="badge">20</span></button>
+    <div class="tg" id="tg-k">
+      <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Курсанту</span><span class="cur"></span><i class="chev"></i></button>
+      <div class="menu" role="menu">
+        <button class="tab" role="tab" aria-selected="true" data-p="p-memo">Памятка<span class="badge">12</span></button>
+        <button class="tab tb-ru" role="tab" aria-selected="false" data-p="p-ru">Повышение<span class="badge">1 → 6</span></button>
+        <button class="tab tb-le" role="tab" aria-selected="false" data-p="p-le">Лекции<span class="badge">6 тем</span></button>
+      </div>
+    </div>
+    <div class="tg" id="tg-u">
+      <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Уставы</span><span class="cur"></span><i class="chev"></i></button>
+      <div class="menu" role="menu">
+        <button class="tab tb-vu" role="tab" aria-selected="false" data-p="p-vu">Устав ВС и ФСВНГ<span class="badge">50 ст.</span></button>
+        <button class="tab tb-du" role="tab" aria-selected="false" data-p="p-du">Дисциплинарный<span class="badge">37 ст.</span></button>
+        <button class="tab tb-uk" role="tab" aria-selected="false" data-p="p-uk">Караульно-постовой<span class="badge">44 ст.</span></button>
+      </div>
+    </div>
+    <div class="tg" id="tg-c">
+      <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Кодексы</span><span class="cur"></span><i class="chev"></i></button>
+      <div class="menu" role="menu">
+        <button class="tab tb-ug" role="tab" aria-selected="false" data-p="p-ug">Уголовный<span class="badge">117 ст.</span></button>
+        <button class="tab tb-ap" role="tab" aria-selected="false" data-p="p-ap">Об административных правонарушениях<span class="badge">136 ст.</span></button>
+        <button class="tab tb-pk" role="tab" aria-selected="false" data-p="p-pk">Уголовно-процессуальный<span class="badge"><!--N:pk--> ст.</span></button>
+      </div>
+    </div>
+    <div class="tg" id="tg-z">
+      <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Законы</span><span class="cur"></span><i class="chev"></i></button>
+      <div class="menu" role="menu">
+        <button class="tab tb-fo" role="tab" aria-selected="false" data-p="p-fo">Об обороне<span class="badge"><!--N:fo--> ст.</span></button>
+        <button class="tab tb-fw" role="tab" aria-selected="false" data-p="p-fw">Об оружии<span class="badge"><!--N:fw--> ст.</span></button>
+        <button class="tab tb-fs" role="tab" aria-selected="false" data-p="p-fs">Статус должностных лиц<span class="badge"><!--N:fs--> ст.</span></button>
+        <button class="tab tb-fe" role="tab" aria-selected="false" data-p="p-fe">Кодекс этики<span class="badge"><!--N:fe--> ст.</span></button>
+        <button class="tab tb-fm" role="tab" aria-selected="false" data-p="p-fm">Военное и чрезвычайное положение<span class="badge"><!--N:fm--> ст.</span></button>
+      </div>
+    </div>
+    <button class="tab tb-ex top" role="tab" aria-selected="false" data-p="p-ex">Экзамен<span class="badge">20</span></button>
+    <select id="docsel" class="docsel" aria-label="Документ"></select>
   </div>
 </header>
 
@@ -470,6 +527,12 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   <div id="nav-uk" hidden><h2 class="panel-h">Караульно-постовая служба</h2><ol id="toc-uk"></ol></div>
   <div id="nav-ug" hidden><h2 class="panel-h">Уголовный кодекс</h2><ol id="toc-ug"></ol></div>
   <div id="nav-ap" hidden><h2 class="panel-h">КоАП РО</h2><ol id="toc-ap"></ol></div>
+  <div id="nav-pk" hidden><h2 class="panel-h">УПК РО</h2><ol id="toc-pk"></ol></div>
+  <div id="nav-fo" hidden><h2 class="panel-h">Об обороне</h2><ol id="toc-fo"></ol></div>
+  <div id="nav-fw" hidden><h2 class="panel-h">Об оружии</h2><ol id="toc-fw"></ol></div>
+  <div id="nav-fs" hidden><h2 class="panel-h">Статус должностных лиц</h2><ol id="toc-fs"></ol></div>
+  <div id="nav-fe" hidden><h2 class="panel-h">Кодекс этики</h2><ol id="toc-fe"></ol></div>
+  <div id="nav-fm" hidden><h2 class="panel-h">Военное и чрезвычайное положение</h2><ol id="toc-fm"></ol></div>
   <div id="nav-ex" hidden><h2 class="panel-h">Экзамен</h2><p style="font-size:13.5px;color:var(--ink-faint);font-family:var(--f-body);margin:0">20 вопросов по всем разделам. Нажми на вопрос, чтобы раскрыть ответ.</p></div>
 </nav>
 
@@ -487,6 +550,18 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 
 <div class="pane" id="p-ap" hidden><!--INSERT:ap--></div>
 
+<div class="pane" id="p-pk" hidden><!--INSERT:pk--></div>
+
+<div class="pane" id="p-fo" hidden><!--INSERT:fo--></div>
+
+<div class="pane" id="p-fw" hidden><!--INSERT:fw--></div>
+
+<div class="pane" id="p-fs" hidden><!--INSERT:fs--></div>
+
+<div class="pane" id="p-fe" hidden><!--INSERT:fe--></div>
+
+<div class="pane" id="p-fm" hidden><!--INSERT:fm--></div>
+
 <!--PANE:EXAM-->
 
 <footer>
@@ -499,6 +574,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 </div>
 </div>
 
+
+<button class="totop" id="toTop" type="button" aria-label="Наверх" title="Наверх" hidden>&uarr;</button>
 
 <button class="ai-btn" id="aiOpen" hidden aria-label="Спросить помощника"><b></b>Спросить помощника</button>
 
@@ -528,7 +605,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 (function(){
   var panes=[].slice.call(document.querySelectorAll(".pane"));
   var tabs=[].slice.call(document.querySelectorAll(".tab"));
-  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-ex":"nav-ex","p-ug":"nav-ug","p-ap":"nav-ap" };
+  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-ex":"nav-ex","p-ug":"nav-ug","p-ap":"nav-ap",
+             "p-pk":"nav-pk","p-fo":"nav-fo","p-fw":"nav-fw","p-fs":"nav-fs","p-fe":"nav-fe","p-fm":"nav-fm" };
   var qbox=document.getElementById("q");
 
   function show(id){
@@ -538,9 +616,61 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
       var n=document.getElementById(navs[k]); if(n) n.hidden = k!==id;
     });
     qbox.value=""; runSearch("");
+    syncGroups(id);
     window.scrollTo({top:0,behavior:"instant"});
   }
   tabs.forEach(function(t){t.addEventListener("click",function(){show(t.dataset.p)})});
+
+  /* группы в шапке: подсветить группу открытого документа и показать его имя в кнопке */
+  var groups=[].slice.call(document.querySelectorAll(".tg"));
+  var docsel=document.getElementById("docsel");
+  function tabLabel(t){ return (t.childNodes[0] && t.childNodes[0].textContent || "").trim(); }
+  function closeMenus(){ groups.forEach(function(g){g.classList.remove("open"); g.querySelector(".tgb").setAttribute("aria-expanded","false")}); }
+  function syncGroups(id){
+    groups.forEach(function(g){
+      var t=g.querySelector('.tab[data-p="'+id+'"]');
+      g.classList.toggle("on", !!t);
+      g.querySelector(".cur").textContent = t ? tabLabel(t) : "";
+    });
+    closeMenus();
+    if(docsel) docsel.value=id;
+  }
+  groups.forEach(function(g){
+    var b=g.querySelector(".tgb");
+    b.addEventListener("click",function(e){
+      e.stopPropagation();
+      var was=g.classList.contains("open");
+      closeMenus();
+      if(!was){ g.classList.add("open"); b.setAttribute("aria-expanded","true"); }
+    });
+  });
+  document.addEventListener("click",function(e){ if(!e.target.closest || !e.target.closest(".tg")) closeMenus(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeMenus(); });
+  /* на телефоне вместо групп — один выпадающий список со всеми документами */
+  if(docsel){
+    groups.forEach(function(g){
+      var og=document.createElement("optgroup"); og.label=g.querySelector(".tgn").textContent;
+      g.querySelectorAll(".tab").forEach(function(t){
+        var o=document.createElement("option"); o.value=t.dataset.p;
+        var bd=t.querySelector(".badge"); o.textContent=tabLabel(t)+(bd?" — "+bd.textContent:""); og.appendChild(o);
+      });
+      docsel.appendChild(og);
+    });
+    var ex=document.querySelector('.tab.top[data-p="p-ex"]');
+    if(ex){ var oe=document.createElement("option"); oe.value="p-ex"; oe.textContent=tabLabel(ex)+" — 20 вопросов"; docsel.appendChild(oe); }
+    docsel.addEventListener("change",function(){ show(docsel.value); });
+  }
+  syncGroups("p-memo");
+
+  /* кнопка «наверх» */
+  var toTop=document.getElementById("toTop");
+  if(toTop){
+    var tick=false;
+    function chkTop(){ toTop.hidden = window.scrollY < 600; tick=false; }
+    window.addEventListener("scroll",function(){ if(!tick){ tick=true; requestAnimationFrame(chkTop); } },{passive:true});
+    chkTop();
+    toTop.addEventListener("click",function(){ window.scrollTo({top:0,behavior:"smooth"}); });
+  }
 
 
 
@@ -593,6 +723,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   buildToc("p-vu","toc-vu");buildToc("p-du","toc-du");buildToc("p-uk","toc-uk");
   buildToc("p-le","toc-le");buildToc("p-ru","toc-ru");
   buildToc("p-ug","toc-ug");buildToc("p-ap","toc-ap");
+  buildToc("p-pk","toc-pk");buildToc("p-fo","toc-fo");buildToc("p-fw","toc-fw");
+  buildToc("p-fs","toc-fs");buildToc("p-fe","toc-fe");buildToc("p-fm","toc-fm");
 
   /* памятка: оглавление + прогресс */
   var memoSecs=[].slice.call(document.querySelectorAll("#p-memo section.blk"));
@@ -705,7 +837,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   }
 
   /* «УК ст. 85» в ответе — ссылка на саму статью; лекции и правила ведут на свой раздел */
-  var PANE={"УКПС":["p-uk","uk"],"КоАП":["p-ap","ap"],"ДУ":["p-du","du"],"ВУ":["p-vu","vu"],"УК":["p-ug","ug"]};
+  var PANE={"УКПС":["p-uk","uk"],"КоАП":["p-ap","ap"],"УПК":["p-pk","pk"],"ДУ":["p-du","du"],"ВУ":["p-vu","vu"],"УК":["p-ug","ug"],
+            "ФЗ-2":["p-fo","fo"],"ФЗ-8":["p-fw","fw"],"ФЗ-10":["p-fs","fs"],"Кодекс этики":["p-fe","fe"],"ФКЗ-3":["p-fm","fm"]};
   var DOCS=[["Лекция «Постовая служба»","p-le","le1-h1"],["Лекция по субординации","p-le","le2-h1"],
             ["Лекция «Строевая подготовка»","p-le","le3-h1"],["Принятие присяги","p-le","le4-h1"],
             ["Система повышения","p-ru","ru-st12"],["Частые ошибки в отчётах","p-ru","ru-proofs"],
@@ -714,7 +847,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     return '<a class="ai-ref" data-pane="'+pane+'" data-id="'+id+'" title="Открыть на сайте">'+txt+"</a>";
   }
   function linkRefs(html){
-    html=html.replace(/(УКПС|КоАП|ДУ|ВУ|УК)\s*ст\.\s*(\d+(?:\.\d+)*)/g,function(m,ab,num){
+    html=html.replace(/(УКПС|КоАП|УПК|ФКЗ-3|ФЗ-10|ФЗ-2|ФЗ-8|Кодекс этики|ДУ|ВУ|УК)\s*ст\.\s*(\d+(?:\.\d+)*)/g,function(m,ab,num){
       var p=PANE[ab]; if(!p) return m;
       var id=p[1]+"-a"+num.replace(/\./g,"-");
       return document.getElementById(id) ? refLink(m,p[0],id) : m;

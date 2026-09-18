@@ -61,17 +61,25 @@ for fn, doc, abbr in CHARTERS:
 
 # ---------- кодексы РО: каждая статья отдельным фрагментом ----------
 ZAK = os.path.join(ROOT, "правовая", "законы")
+# (файл, документ, сокращение для ссылок, нумерация статей заново в каждой главе)
 CODES = [
-    ("уголовный-кодекс.md", "Уголовный кодекс РО", "УК"),
-    ("коап-ро.md", "КоАП РО", "КоАП"),
+    ("уголовный-кодекс.md", "Уголовный кодекс РО", "УК", False),
+    ("коап-ро.md", "КоАП РО", "КоАП", False),
+    ("упк-ро.md", "УПК РО", "УПК", False),
+    ("фз-2-об-обороне.md", "ФЗ «Об обороне»", "ФЗ-2", False),
+    ("фз-8-оружие.md", "ФЗ «Об оружии»", "ФЗ-8", True),
+    ("фз-10-должностные-лица.md", "ФЗ «Об особом статусе должностных лиц»", "ФЗ-10", True),
+    ("кодекс-этики.md", "Кодекс этики", "Кодекс этики", False),
+    ("фкз-3-правовые-режимы.md", "ФКЗ «О вводимых правовых режимах»", "ФКЗ-3", False),
 ]
-CODE_JUNK = re.compile(r"^(Источник:|#|РАЗДЕЛ\s|Глава\s|УГОЛОВНЫЙ КОДЕКС|КОДЕКС РО|ОБ АДМИНИСТРАТИВНЫХ|\*)")
-for fn, doc, abbr in CODES:
+CODE_JUNK = re.compile(r"^(Источник:|#|РАЗДЕЛ\s|Раздел\s|ЧАСТЬ\s+[А-Я]|Глава\s|ГЛАВА\s|[А-ЯЁ«\"][А-ЯЁ\s«»\"\-,.№]{12,}$|\*)")
+for fn, doc, abbr, per_chapter in CODES:
     p = os.path.join(ZAK, fn)
     if not os.path.exists(p): continue
     raw = read(p).replace("**", "")
     num = title = None
     body = []
+    gch = 0
     def flush_code():
         if num:
             add(doc, "Статья %s%s" % (num, (". " + title) if title else ""),
@@ -79,10 +87,14 @@ for fn, doc, abbr in CODES:
     for l in raw.split("\n"):
         l = l.strip()
         if not l or l.startswith("---"): continue
+        if re.match(r"^(Глава|ГЛАВА)\s+[0-9IVXL]+", l):
+            gch += 1
         m = re.match(r"^Статья\s+([0-9]+(?:\.[0-9]+)*)\.?\s*(.*)$", l)
         if m:
             flush_code()
             num, title, body = m.group(1), m.group(2).strip(), []
+            if per_chapter:
+                num = "%d.%s" % (gch, num)     # как на сайте: «3.2» = статья 2 главы III
             continue
         if CODE_JUNK.match(l): continue
         if num: body.append(l)
