@@ -88,6 +88,120 @@ def parse_charter(path, cls, skip_head=0):
     close()
     return "\n".join(out)
 
+
+# ---------- кодексы РО (markdown с форума) ----------
+# В УК состав и санкция в одном абзаце:   [Р/Ф] [***] Деяние, — наказывается штрафом ...
+# В КоАП санкция вынесена в следующий:    1. [**] Деяние, -
+#                                         влечет наложение административного штрафа ...
+CODE_LINE = re.compile(r"^(\d+[.)]\s*)?((?:\[[^\]\n]{1,28}\]\s*)+)(.+)$")
+PART_LINE = re.compile(r"^(\d+[.)])\s*(.+)$")
+PEN_START = re.compile(r"^(наказывается|наказываются|влечёт|влечет|влекут)\b", re.I)
+PEN_INLINE = re.compile(r"[,\s]*[\u2014\u2013-]\s*(наказывается|наказываются|влечёт|влечет|влекут)\s+", re.I)
+CODE_SKIP = re.compile(r"^(Источник:|#|\*?[А-ЯЁ][^\n]*\u00b7\s*\d{4}-\d{2}-\d{2}\*?$)")
+CODE_HEAD = re.compile(r"^(УГОЛОВНЫЙ КОДЕКС|КОДЕКС РО|ОБ АДМИНИСТРАТИВНЫХ)")
+DASH_END = re.compile(r"[\u2014\u2013-]\s*$")
+
+
+def code_body(paras):
+    """Собирает тело статьи: карточка «состав → наказание» с метками приоритета розыска."""
+    # санкция, вынесенная в отдельный абзац, приклеивается к своему составу
+    merged = []
+    for t in paras:
+        if merged and PEN_START.match(t) and not merged[-1].startswith("Примечание"):
+            merged[-1] = DASH_END.sub("", merged[-1]).rstrip(" ,") + " \u2014 " + t
+        else:
+            merged.append(t)
+
+    html_out = []
+    for l in merged:
+        if l.startswith("Примечание"):
+            html_out.append('<p class="prim">%s</p>' % inline(l))
+            continue
+
+        part, tags, body = "", [], l
+        m = CODE_LINE.match(l)
+        if m:
+            part = (m.group(1) or "").strip()
+            tags = re.findall(r"\[([^\]]+)\]", m.group(2))
+            body = m.group(3)
+        else:
+            mp = PART_LINE.match(l)
+            if mp:
+                part, body = mp.group(1), mp.group(2)
+
+        sp = PEN_INLINE.split(body, 1)
+        if len(sp) != 3:
+            # обычный абзац статьи — без состава и санкции
+            txt = ("<b>%s</b> " % esc(part) if part else "") + inline(body)
+            html_out.append("<p>%s</p>" % txt)
+            continue
+
+        deed, verb, pen = sp[0].rstrip(" ,"), sp[1].lower(), sp[2]
+        chips = ""
+        if part:
+            chips += '<b class="pnum">%s</b>' % esc(part.rstrip(".)"))
+        for t in tags:
+            t = t.strip()
+            cl = "st" if ("\u2605" in t or t.lower().startswith("от ")) else "rf"
+            chips += '<b class="%s">%s</b>' % (cl, esc(t))
+        head = '<p class="ptags">%s</p>' % chips if chips else ""
+        html_out.append('<div class="pun">%s<p class="deed">%s</p>'
+                        '<p class="pen"><i>%s</i>%s</p></div>'
+                        % (head, inline(deed), esc(verb), inline(pen)))
+    return "".join(html_out)
+
+
+def parse_code(path, cls):
+    """Разбирает кодекс: разделы, главы, статьи, составы с приоритетом розыска."""
+    raw = io.open(path, encoding="utf-8-sig").read().replace("**", "")
+    out, nch = [], 0
+    art = None
+
+    def close():
+        nonlocal art
+        if art:
+            out.append(
+                '<div class="art" id="%s" data-num="%s" data-title="%s">'
+                '<p class="an"><i>%s</i><span>%s</span></p>%s</div>'
+                % (art["id"], esc(art["num"]), esc(art["title"]),
+                   esc(art["num"]), esc(art["title"]), code_body(art["raw"])))
+            art = None
+
+    def chapter(text, short, extra=""):
+        nonlocal nch
+        nch += 1
+        out.append('<h3 class="chapter%s" id="%s-ch%d" data-short="%s">%s</h3>'
+                   % (extra, cls, nch, esc(short[:42]), esc(text)))
+
+    for raw_line in raw.split("\n"):
+        l = raw_line.strip()
+        if not l or l.startswith("---") or CODE_SKIP.match(l) or CODE_HEAD.match(l):
+            continue
+
+        if re.match(r"^РАЗДЕЛ\s+[IVXL]+", l):
+            close()
+            chapter(l, re.sub(r"^РАЗДЕЛ\s+[IVXL]+\.?\s*", "", l) or l)
+            continue
+
+        if re.match(r"^Глава\s+[0-9]+", l):
+            close()
+            chapter(l, re.sub(r"^Глава\s+[0-9]+\.?\s*", "", l) or l, " ch2")
+            continue
+
+        m = re.match(r"^Статья\s+([0-9]+(?:\.[0-9]+)*)\.?\s*(.*)$", l)
+        if m:
+            close()
+            num, title = m.group(1), m.group(2).strip()
+            art = {"num": num, "title": title or ("Статья " + num),
+                   "id": "%s-a%s" % (cls, num.replace(".", "-")), "raw": []}
+            continue
+
+        if art is not None:
+            art["raw"].append(l)
+
+    close()
+    return "\n".join(out)
+
 # ---------- markdown → html ----------
 def md2html(path, idp):
     txt = io.open(path, encoding="utf-8").read()
@@ -556,9 +670,7 @@ AFTER = ('<h3 class="chapter" id="ru-after" data-short="Что дальше">Ч�
  '<p><strong>После 3 ранга</strong> выбираешь подразделение: ОМОН, РВО, ОСБ или Кадровая служба ФСВНГ.</p>'
  '<p><strong>С 6 ранга</strong> (звание «Старшина») можно подать на военный билет — условия: не менее 6 дней во фракции '
  'с момента призыва и служба в учебном корпусе с 1 по 3 ранг. Заявка подаётся в канал #запрос-военных-билетов, '
- 'после чего нужно найти старший состав ФСВНГ для выдачи.</p>'
- '<div class="note bad"><div class="h">Важно</div>Получив военный билет в Росгвардии, ты обязан остаться служить. '
- 'При увольнении билет изымается.</div>')
+ 'после чего нужно найти старший состав ФСВНГ для выдачи.</p>')
 
 PROOFS = ('<h3 class="chapter" id="ru-proofs" data-short="Доказательства">Доказательства</h3>'
  '<p>Фото и видео принимаются только с этих сервисов: <strong>YouTube, Rutube, Google Drive, Yandex Disk, imgur, Yapx, Prnt, ibb</strong>.</p>'
@@ -585,10 +697,28 @@ exam = ('<div class="dochead dd"><div class="abbr">Проверка знаний
         '<p class="sub">Двадцать вопросов по всем разделам. Сначала ответь вслух, потом раскрывай ответ.</p>'
         '<div class="facts"><span>Раскрыто <b id="opened">0</b> из 20</span></div></div>' + exam_raw)
 
+
+# ---------- кодексы РО ----------
+Z = os.path.join(ROOT, "правовая", "законы")
+ug_body = parse_code(os.path.join(Z, "уголовный-кодекс.md"), "ug")
+ap_body = parse_code(os.path.join(Z, "коап-ро.md"), "ap")
+
+ug = dochead("dc", "Законы РО", "Уголовный кодекс",
+             "Преступления и наказания: что грозит нарушителю и по какой статье его задерживают. "
+             "Звёздами отмечен приоритет розыска \u2014 один приоритет равен 10 месяцам лишения свободы (ст. 100.1).",
+             ["%d статей" % ug_body.count('class="art"'), "8 разделов",
+              "Раздел VIII \u2014 <b>против военной службы</b>"]) + ug_body
+
+ap = dochead("da", "Законы РО", "Кодекс об административных правонарушениях",
+             "Проступки, за которые не сажают: штрафы, предупреждения и порядок производства по делу. "
+             "Сюда попадают мелкое хулиганство, неповиновение и оскорбление.",
+             ["%d статей" % ap_body.count('class="art"'), "18 глав",
+              "Оскорбление \u2014 <b>ст. 5.4</b>"]) + ap_body
+
 tpl = io.open(TPL, encoding="utf-8").read()
 tpl = tpl.replace("<!--PANE:MEMO-->", '<div class="pane" id="p-memo">%s</div>' % chanlinks(memo))
 tpl = tpl.replace("<!--PANE:EXAM-->", '<div class="pane" id="p-ex" hidden>%s</div>' % chanlinks(exam))
-for k, v in (("vu", vu), ("du", du), ("uk", uk), ("le", le), ("ru", ru)):
+for k, v in (("vu", vu), ("du", du), ("uk", uk), ("le", le), ("ru", ru), ("ug", ug), ("ap", ap)):
     tpl = tpl.replace("<!--INSERT:%s-->" % k, chanlinks(v))
 
 # адрес воркера-помощника: пока файла нет — кнопка на странице не появляется

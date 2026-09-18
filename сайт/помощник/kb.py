@@ -12,9 +12,12 @@ def read(p): return io.open(p, encoding="utf-8-sig").read()
 
 chunks = []
 
+MAXLEN = 1600          # длинные статьи режем, иначе восемь фрагментов раздувают запрос
+
 def add(doc, title, text, ref=""):
     text = re.sub(r"\s+", " ", text).strip()
     if len(text) < 40: return
+    if len(text) > MAXLEN: text = text[:MAXLEN].rsplit(" ", 1)[0] + "…"
     chunks.append({"d": doc, "t": title, "x": text, "r": ref})
 
 # ---------- уставы: каждая статья отдельным фрагментом ----------
@@ -41,6 +44,35 @@ for fn, doc, abbr in CHARTERS:
         if re.match(r"^\*{0,2}(ГЛАВА|Глава)\b", l): continue
         if num: body.append(re.sub(r"\*\*(.+?)\*\*", r"\1", l))
     flush()
+
+# ---------- кодексы РО: каждая статья отдельным фрагментом ----------
+ZAK = os.path.join(ROOT, "правовая", "законы")
+CODES = [
+    ("уголовный-кодекс.md", "Уголовный кодекс РО", "УК"),
+    ("коап-ро.md", "КоАП РО", "КоАП"),
+]
+CODE_JUNK = re.compile(r"^(Источник:|#|РАЗДЕЛ\s|Глава\s|УГОЛОВНЫЙ КОДЕКС|КОДЕКС РО|ОБ АДМИНИСТРАТИВНЫХ|\*)")
+for fn, doc, abbr in CODES:
+    p = os.path.join(ZAK, fn)
+    if not os.path.exists(p): continue
+    raw = read(p).replace("**", "")
+    num = title = None
+    body = []
+    def flush_code():
+        if num:
+            add(doc, "Статья %s%s" % (num, (". " + title) if title else ""),
+                " ".join(body), "%s ст. %s" % (abbr, num))
+    for l in raw.split("\n"):
+        l = l.strip()
+        if not l or l.startswith("---"): continue
+        m = re.match(r"^Статья\s+([0-9]+(?:\.[0-9]+)*)\.?\s*(.*)$", l)
+        if m:
+            flush_code()
+            num, title, body = m.group(1), m.group(2).strip(), []
+            continue
+        if CODE_JUNK.match(l): continue
+        if num: body.append(l)
+    flush_code()
 
 # ---------- лекции, правила, процедуры: по разделам ----------
 MD = [

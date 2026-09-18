@@ -34,6 +34,17 @@ for fn, pref, name in CH:
     if miss: err("%s: не попали на сайт статьи %s" % (name, ", ".join(miss)))
     else: ok("%s — все %d статей на месте" % (name, len(src)))
     if dup: warn("%s: повторы номеров в оригинале — %s" % (name, ", ".join(dup)))
+# кодексы РО лежат в правовой базе как markdown с форума
+ZAK = os.path.join(ROOT, "правовая", "законы")
+CODES = [("уголовный-кодекс.md", "ug", "Уголовный кодекс"),
+         ("коап-ро.md", "ap", "КоАП РО")]
+for fn, pref, name in CODES:
+    src = arts(read(os.path.join(ZAK, fn)))
+    total_src += len(src)
+    miss = [a for a in src if ('id="%s-a%s"' % (pref, a.replace(".", "-"))) not in site]
+    if miss: err("%s: не попали на сайт статьи %s" % (name, ", ".join(miss[:12])))
+    else: ok("%s — все %d статей на месте" % (name, len(src)))
+
 site_arts = site.count('class="art"')
 if site_arts == total_src: ok("на сайте ровно %d статей, лишних нет" % site_arts)
 else: err("на сайте %d статей, в оригиналах %d" % (site_arts, total_src))
@@ -87,7 +98,8 @@ if site.count('src=""') or "src=\"\"" in site: err("есть пустые src у
 # 5. структура сайта
 head("Структура страницы")
 for pid, nm in [("p-memo","Памятка"),("p-vu","Устав ВС"),("p-du","Дисциплинарный"),
-                ("p-uk","Караульный"),("p-le","Лекции"),("p-ru","Повышение"),("p-ex","Экзамен")]:
+                ("p-uk","Караульный"),("p-le","Лекции"),("p-ru","Повышение"),("p-ex","Экзамен"),
+                ("p-ug","Уголовный кодекс"),("p-ap","КоАП")]:
     if 'id="%s"' % pid in site: ok("вкладка «%s» на месте" % nm)
     else: err("нет вкладки «%s»" % nm)
 for cnt, need, what in [(site.count('class="blk"'), 12, "разделов памятки"),
@@ -106,8 +118,10 @@ for frag, what in [('id="aiOpen"', "кнопка"), ('id="aiPanel"', "панел
                    ("var AI_URL", "переменная адреса")]:
     if frag in site: ok("%s на месте" % what)
     else: err("нет: %s" % what)
-if site.count('class="ai-chip"') == 4: ok("4 быстрых сценария")
-else: err("быстрых сценариев %d вместо 4" % site.count('class="ai-chip"'))
+if site.count('class="ai-chip"') == 5: ok("5 быстрых сценариев")
+else: err("быстрых сценариев %d вместо 5" % site.count('class="ai-chip"'))
+if '"h":hist' in site or "h:hist" in site: ok("виджет передаёт историю диалога")
+else: err("виджет не передаёт историю — уточняющие вопросы не заработают")
 m = re.search(r'var AI_URL = "([^"]*)"', site)
 if m and m.group(1).startswith("https://"): ok("адрес воркера прописан: %s" % m.group(1))
 else: warn("адрес воркера пуст — кнопка помощника на странице скрыта")
@@ -117,9 +131,23 @@ if os.path.exists(KBJS):
     ok("база знаний помощника: %d фрагментов" % n)
 else: err("нет сайт/помощник/kb.js")
 
+head("Кодексы: составы и санкции")
+for pref, name, least in (("ug", "Уголовный кодекс", 90), ("ap", "КоАП РО", 70)):
+    i = site.find('id="p-%s"' % pref)
+    j = site.find('<div class="pane"', i + 20)
+    part = site[i:(j if j > 0 else len(site))]
+    puns = part.count('class="pun"')
+    pens = part.count('class="pen"')
+    if puns >= least: ok("%s: разобрано %d составов" % (name, puns))
+    else: err("%s: составов всего %d, ожидалось не меньше %d" % (name, puns, least))
+    if pens == puns: ok("%s: у каждого состава указано наказание" % name)
+    else: err("%s: у %d составов потеряно наказание" % (name, puns - pens))
+if "★" in site: ok("метки приоритета розыска на месте")
+else: err("метки приоритета розыска потерялись")
+
 # 5b. баланс тегов в панелях — ловит «уехавшие» блоки
 head("Целостность панелей")
-panes=["p-memo","p-ru","p-le","p-vu","p-du","p-uk","p-ex"]
+panes=["p-memo","p-ru","p-le","p-vu","p-du","p-uk","p-ug","p-ap","p-ex"]
 # хвост страницы после последней панели — виджет помощника, в подсчёт панелей не входит
 tail_at = site.find('<button class="ai-btn"')
 body = site[:tail_at] if tail_at > 0 else site
@@ -164,6 +192,9 @@ if not errors or True: ok("проверка мусора завершена")
 
 # 7. ключевые факты: сайт vs оригиналы
 head("Сверка ключевых фактов с оригиналами")
+if "обязан остаться служить" in site or "билет изымается" in site:
+    err("вернулось устаревшее правило про изъятие военного билета")
+else: ok("военный билет при увольнении не изымается — устаревшего правила нет")
 vu = read(os.path.join(SRC, "устав-вс-и-фсвнг_оригинал.txt"))
 du = read(os.path.join(SRC, "дисциплинарный-устав_оригинал.txt"))
 uk = read(os.path.join(SRC, "устав-караульно-постовой-службы_оригинал.txt"))

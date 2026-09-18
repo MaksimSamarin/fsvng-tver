@@ -8,6 +8,7 @@
   --paper:#EDEAE3;--paper-2:#E3DFD5;--ink:#1B1F1A;--ink-soft:#4C5247;--ink-faint:#787D71;
   --rule:#C9C4B6;--field:#3F5133;--field-soft:#6B7C5C;--signal:#B3261E;--signal-soft:#D8695F;
   --brass:#8A7A4E;--card:#F5F3ED;--code-bg:#242821;--code-ink:#DFE3D8;
+  --law:#3C5068;--law-2:#6B5B7B;
   --f-display:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
   --f-body:"PT Serif",Georgia,"Times New Roman",serif;
   --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
@@ -15,11 +16,13 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#14170F;--paper-2:#1B1F17;--ink:#E6E4DB;--ink-soft:#B3B7A9;--ink-faint:#868B7B;
   --rule:#343A2C;--field:#8FA779;--field-soft:#6E8259;--signal:#E4695E;--signal-soft:#B3463C;
-  --brass:#C0AC77;--card:#1E2219;--code-bg:#0D0F0A;--code-ink:#CFD5C4;}}
+  --brass:#C0AC77;--card:#1E2219;--code-bg:#0D0F0A;--code-ink:#CFD5C4;
+  --law:#8DA7C4;--law-2:#B29AC6;}}
 :root[data-theme="dark"]{
   --paper:#14170F;--paper-2:#1B1F17;--ink:#E6E4DB;--ink-soft:#B3B7A9;--ink-faint:#868B7B;
   --rule:#343A2C;--field:#8FA779;--field-soft:#6E8259;--signal:#E4695E;--signal-soft:#B3463C;
-  --brass:#C0AC77;--card:#1E2219;--code-bg:#0D0F0A;--code-ink:#CFD5C4;}
+  --brass:#C0AC77;--card:#1E2219;--code-bg:#0D0F0A;--code-ink:#CFD5C4;
+  --law:#8DA7C4;--law-2:#B29AC6;}
 
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.62;margin:0;-webkit-font-smoothing:antialiased}
@@ -50,6 +53,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 .tsep{width:1px;height:22px;background:var(--rule);margin:0 8px;align-self:center}
 @media(max-width:760px){.tgroup{display:none}.tsep{margin:0 4px}}
 .tb-ex{--tcol:var(--ink-soft)}
+.tb-ug{--tcol:var(--law)}.tb-ap{--tcol:var(--law-2)}
 
 /* каркас */
 .shell{display:grid;grid-template-columns:238px minmax(0,1fr);gap:40px;align-items:start;margin-top:26px}
@@ -87,6 +91,7 @@ nav.side{position:sticky;top:16px;font-family:var(--f-display);max-height:calc(1
 .dochead .facts{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;font-family:var(--f-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
 .dochead .facts b{color:var(--ink)}
 .dv{--dc:var(--field)}.dd{--dc:var(--signal)}.du_{--dc:var(--brass)}.dl{--dc:var(--field-soft)}
+.dc{--dc:var(--law)}.da{--dc:var(--law-2)}
 
 /* текст устава */
 .chapter{font-family:var(--f-display);font-weight:700;font-size:clamp(19px,2.4vw,24px);text-transform:uppercase;letter-spacing:.02em;
@@ -401,6 +406,25 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   .ai-panel{right:8px;left:8px;bottom:8px;width:auto;max-width:none;max-height:calc(100vh - 16px)}
   .ai-btn{right:12px;bottom:12px;padding:10px 14px;font-size:12px}
 }
+/* кодексы: состав деяния и наказание */
+.chapter.ch2{font-size:clamp(16px,1.9vw,19px);text-transform:none;letter-spacing:0;color:var(--ink-soft);
+  border-left:3px solid var(--rule);padding-left:10px;margin-top:22px}
+.pun{border:1px solid var(--rule);background:var(--paper);margin:11px 0;padding:11px 13px}
+.pun .ptags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 7px}
+.pun .pnum{font-family:var(--f-display);font-size:12px;font-weight:700;background:var(--ink-soft);color:var(--paper);
+  padding:1px 7px;letter-spacing:.06em}
+.pun .st{font-size:12.5px;letter-spacing:.09em;color:var(--signal);border:1px solid var(--signal);padding:1px 7px;
+  font-family:var(--f-display);white-space:nowrap}
+.pun .rf{font-size:11px;letter-spacing:.12em;color:var(--brass);border:1px solid var(--brass);padding:2px 7px;
+  font-family:var(--f-display);font-weight:700}
+.pun .deed{margin:0;font-size:15px;line-height:1.55}
+.pun .pen{margin:8px 0 0;padding-top:7px;border-top:1px dotted var(--rule);font-size:14.5px;color:var(--ink-soft);line-height:1.5}
+.pun .pen i{font-style:normal;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.09em;
+  font-size:11px;color:var(--signal);margin-right:7px}
+.prim{font-size:14px;color:var(--ink-soft);border-left:2px solid var(--brass);padding-left:11px;margin:10px 0}
+.lawnote{font-family:var(--f-display);font-size:12.5px;letter-spacing:.04em;color:var(--ink-faint);
+  border:1px dashed var(--rule);padding:8px 11px;margin:14px 0 0}
+
 </style>
 
 <div class="wrap">
@@ -408,7 +432,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 <header class="cover">
   <div class="stamp"><span class="dot"></span>Федеральная служба войск национальной гвардии · Тверской</div>
   <h1>База знаний ФСВНГ</h1>
-  <p class="lede">Памятка курсанта, полные тексты трёх уставов, лекции, правила фракции и экзамен — в одном месте. Никуда переходить не нужно.</p>
+  <p class="lede">Памятка курсанта, полные тексты трёх уставов, Уголовный кодекс и КоАП, лекции, правила фракции и экзамен — в одном месте. Никуда переходить не нужно.</p>
   <div class="tabs" role="tablist">
     <span class="tgroup">Для курсанта</span>
     <button class="tab" role="tab" aria-selected="true" data-p="p-memo">Памятка<span class="badge">12</span></button>
@@ -419,6 +443,10 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     <button class="tab tb-vu" role="tab" aria-selected="false" data-p="p-vu">Устав ВС<span class="badge">50 ст.</span></button>
     <button class="tab tb-du" role="tab" aria-selected="false" data-p="p-du">Дисциплинарный<span class="badge">37 ст.</span></button>
     <button class="tab tb-uk" role="tab" aria-selected="false" data-p="p-uk">Караульный<span class="badge">44 ст.</span></button>
+    <span class="tsep"></span>
+    <span class="tgroup">Законы РО</span>
+    <button class="tab tb-ug" role="tab" aria-selected="false" data-p="p-ug">Уголовный<span class="badge">117 ст.</span></button>
+    <button class="tab tb-ap" role="tab" aria-selected="false" data-p="p-ap">КоАП<span class="badge">136 ст.</span></button>
     <span class="tsep"></span>
     <button class="tab tb-ex" role="tab" aria-selected="false" data-p="p-ex">Экзамен<span class="badge">20</span></button>
   </div>
@@ -435,6 +463,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   <div id="nav-vu" hidden><h2 class="panel-h">Устав ВС и ФСВНГ</h2><ol id="toc-vu"></ol></div>
   <div id="nav-du" hidden><h2 class="panel-h">Дисциплинарный устав</h2><ol id="toc-du"></ol></div>
   <div id="nav-uk" hidden><h2 class="panel-h">Караульно-постовая служба</h2><ol id="toc-uk"></ol></div>
+  <div id="nav-ug" hidden><h2 class="panel-h">Уголовный кодекс</h2><ol id="toc-ug"></ol></div>
+  <div id="nav-ap" hidden><h2 class="panel-h">КоАП РО</h2><ol id="toc-ap"></ol></div>
   <div id="nav-ex" hidden><h2 class="panel-h">Экзамен</h2><p style="font-size:13.5px;color:var(--ink-faint);font-family:var(--f-body);margin:0">20 вопросов по всем разделам. Нажми на вопрос, чтобы раскрыть ответ.</p></div>
 </nav>
 
@@ -447,6 +477,10 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 <div class="pane" id="p-vu" hidden><!--INSERT:vu--></div>
 <div class="pane" id="p-du" hidden><!--INSERT:du--></div>
 <div class="pane" id="p-uk" hidden><!--INSERT:uk--></div>
+
+<div class="pane" id="p-ug" hidden><!--INSERT:ug--></div>
+
+<div class="pane" id="p-ap" hidden><!--INSERT:ap--></div>
 
 <!--PANE:EXAM-->
 
@@ -469,13 +503,14 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     <button class="x" id="aiClose" aria-label="Закрыть">&times;</button>
   </div>
   <div class="ai-log" id="aiLog">
-    <div class="ai-msg bot"><div class="ai-hint">Опиши ситуацию своими словами — отвечу порядком действий и дам статьи, на которые опереться. Отвечаю только по текстам уставов с этой страницы.</div></div>
+    <div class="ai-msg bot"><div class="ai-hint">Опиши ситуацию своими словами — отвечу порядком действий и дам статьи, на которые опереться. Отвечаю только по документам с этой страницы: уставы, Уголовный кодекс, КоАП, лекции и правила фракции.</div></div>
   </div>
   <div class="ai-chips" id="aiChips">
     <button class="ai-chip" type="button">Гражданский без пропуска рвётся на КПП</button>
     <button class="ai-chip" type="button">Задержал нарушителя за территорией части</button>
     <button class="ai-chip" type="button">На меня направили оружие на посту</button>
     <button class="ai-chip" type="button">Опоздал на построение, что грозит</button>
+    <button class="ai-chip" type="button">Что будет за угон военной машины</button>
   </div>
   <form class="ai-form" id="aiForm">
     <textarea id="aiText" rows="2" placeholder="Например: водитель отказывается выходить из машины на КПП" maxlength="600"></textarea>
@@ -488,7 +523,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 (function(){
   var panes=[].slice.call(document.querySelectorAll(".pane"));
   var tabs=[].slice.call(document.querySelectorAll(".tab"));
-  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-ex":"nav-ex" };
+  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-ex":"nav-ex","p-ug":"nav-ug","p-ap":"nav-ap" };
   var qbox=document.getElementById("q");
 
   function show(id){
@@ -552,6 +587,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   }
   buildToc("p-vu","toc-vu");buildToc("p-du","toc-du");buildToc("p-uk","toc-uk");
   buildToc("p-le","toc-le");buildToc("p-ru","toc-ru");
+  buildToc("p-ug","toc-ug");buildToc("p-ap","toc-ap");
 
   /* памятка: оглавление + прогресс */
   var memoSecs=[].slice.call(document.querySelectorAll("#p-memo section.blk"));
@@ -644,6 +680,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   btn.hidden=false;
 
   var busy=false;
+  var hist=[];   // последние пары вопрос-ответ: без них уточнения вроде «а после этого?» бессмысленны
 
   function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]}) }
 
@@ -676,11 +713,13 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     add("me", esc(q));
     var wait=add("bot", '<span class="ai-dots"><span></span><span></span><span></span></span>Смотрю уставы');
 
-    fetch(AI_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:q})})
+    fetch(AI_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:q,h:hist})})
       .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
       .then(function(res){
         wait.remove();
         if(!res.ok||res.d.error){ add("err", esc(res.d.error||"Помощник не отвечает. Попробуй позже.")); return }
+        hist.push({q:q,a:res.d.answer||""});
+        if(hist.length>3) hist.shift();
         var html=fmt(res.d.answer||"Пустой ответ.");
         if(res.d.refs&&res.d.refs.length&&!/Основание:/i.test(res.d.answer||""))
           html+='<div class="ai-refs">Смотрел: '+esc(res.d.refs.join(" · "))+"</div>";
