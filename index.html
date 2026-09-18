@@ -391,6 +391,11 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 .ai-refs{margin-top:9px;padding-top:7px;border-top:1px dashed var(--rule);font-family:var(--f-mono);font-size:11px;
   color:var(--ink-faint);line-height:1.5;word-break:break-word}
 .ai-hint{font-size:13.5px;color:var(--ink-soft);line-height:1.5}
+.ai-ref{color:var(--field);text-decoration:none;border-bottom:1px dotted var(--field);cursor:pointer;white-space:nowrap}
+.ai-ref:hover{background:var(--paper-2);border-bottom-style:solid}
+.ai-refs .ai-ref{font-weight:700}
+.ai-hit{animation:aihit 2.4s ease-out}
+@keyframes aihit{0%,35%{background:color-mix(in srgb,var(--field) 20%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--field) 20%,transparent)}100%{background:transparent;box-shadow:none}}
 .ai-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 13px 11px;flex:none}
 .ai-chip{font-family:var(--f-display);font-size:12px;letter-spacing:.04em;background:var(--paper-2);border:1px solid var(--rule);
   color:var(--ink-soft);padding:5px 9px;cursor:pointer;text-align:left}
@@ -1563,6 +1568,43 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     return out;
   }
 
+  /* «УК ст. 85» в ответе — ссылка на саму статью; лекции и правила ведут на свой раздел */
+  var PANE={"УКПС":["p-uk","uk"],"КоАП":["p-ap","ap"],"ДУ":["p-du","du"],"ВУ":["p-vu","vu"],"УК":["p-ug","ug"]};
+  var DOCS=[["Лекция «Постовая служба»","p-le","le1-h1"],["Лекция по субординации","p-le","le2-h1"],
+            ["Лекция «Строевая подготовка»","p-le","le3-h1"],["Принятие присяги","p-le","le4-h1"],
+            ["Система повышения","p-ru","ru-st12"],["Частые ошибки в отчётах","p-ru","ru-proofs"],
+            ["Требования к доказательствам","p-ru","ru-proofs"]];
+  function refLink(txt, pane, id){
+    return '<a class="ai-ref" data-pane="'+pane+'" data-id="'+id+'" title="Открыть на сайте">'+txt+"</a>";
+  }
+  function linkRefs(html){
+    html=html.replace(/(УКПС|КоАП|ДУ|ВУ|УК)\s*ст\.\s*(\d+(?:\.\d+)*)/g,function(m,ab,num){
+      var p=PANE[ab]; if(!p) return m;
+      var id=p[1]+"-a"+num.replace(/\./g,"-");
+      return document.getElementById(id) ? refLink(m,p[0],id) : m;
+    });
+    DOCS.forEach(function(d){
+      if(html.indexOf(d[0])>-1 && document.getElementById(d[2]))
+        html=html.split(d[0]).join(refLink(d[0],d[1],d[2]));
+    });
+    return html;
+  }
+  log.addEventListener("click",function(e){
+    var a=e.target.closest ? e.target.closest("a.ai-ref") : null;
+    if(!a) return;
+    e.preventDefault();
+    var tab=document.querySelector('.tab[data-p="'+a.dataset.pane+'"]');
+    if(tab) tab.click();
+    var el=document.getElementById(a.dataset.id);
+    if(!el) return;
+    /* на узком экране панель закрывает всю страницу — сворачиваем её, чтобы статью было видно */
+    if(window.innerWidth<=700){ panel.hidden=true; btn.hidden=false; }
+    setTimeout(function(){
+      el.scrollIntoView({block:"start",behavior:"smooth"});
+      el.classList.remove("ai-hit"); void el.offsetWidth; el.classList.add("ai-hit");
+    },80);
+  });
+
   function add(cls, html){
     var d=document.createElement("div");
     d.className="ai-msg "+cls; d.innerHTML=html;
@@ -1587,7 +1629,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
         var html=fmt(res.d.answer||"Пустой ответ.");
         if(res.d.refs&&res.d.refs.length&&!/Основание:/i.test(res.d.answer||""))
           html+='<div class="ai-refs">Смотрел: '+esc(res.d.refs.join(" · "))+"</div>";
-        add("bot", html);
+        add("bot", linkRefs(html));
       })
       .catch(function(){ wait.remove(); add("err","Нет связи с помощником. Проверь интернет.") })
       .then(function(){ busy=false; send.disabled=false; ta.focus() });
