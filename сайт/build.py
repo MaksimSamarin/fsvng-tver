@@ -730,6 +730,7 @@ fs_body = parse_code(os.path.join(Z, "фз-10-должностные-лица.md
 fe_body = parse_code(os.path.join(Z, "кодекс-этики.md"), "fe")
 fm_body = parse_code(os.path.join(Z, "фкз-3-правовые-режимы.md"), "fm")
 NCOUNT = {k: v.count('class="art"') for k, v in (("pk", pk_body), ("fo", fo_body), ("fw", fw_body), ("fs", fs_body), ("fe", fe_body), ("fm", fm_body))}
+NCOUNT["ex"] = exam_raw.count('<details class="q">')   # бейдж «Экзамен» в шапке — по числу вопросов
 
 pk = dochead("dc", "Кодексы РО", "Уголовно-процессуальный кодекс",
              "Как ведётся уголовное дело: возбуждение, участники, задержание и меры пресечения, следствие и суд. "

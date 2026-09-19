@@ -186,6 +186,12 @@ for frag, what in [('id="tg-k"', "группа «Курсанту»"), ('id="tg-
     else: err("в шапке нет: %s" % what)
 if site.count("<!--N:") == 0: ok("счётчики статей в шапке подставлены")
 else: err("в шапке остались неподставленные счётчики статей")
+# бейдж «Экзамен», счётчик «из N» и число вопросов на вкладке должны совпадать
+mb = re.search(r'data-p="p-ex">Экзамен<span class="badge">(\d+)</span>', site)
+mo = re.search(r'id="opened">0</b> из (\d+)', site)
+nq = site.count('<details class="q">')
+if mb and mo and int(mb.group(1)) == nq == int(mo.group(1)): ok("бейдж «Экзамен» и счётчик «из %d» совпадают с числом вопросов" % nq)
+else: err("экзамен: бейдж %s, счётчик «из %s», вопросов %d — расходятся" % (mb and mb.group(1), mo and mo.group(1), nq))
 # хвост страницы после последней панели — виджет помощника, в подсчёт панелей не входит
 tail_at = site.find('<button class="ai-btn"')
 body = site[:tail_at] if tail_at > 0 else site
