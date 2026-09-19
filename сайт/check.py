@@ -154,7 +154,7 @@ if os.path.exists(KBJS):
     if os.path.exists(VJS):
         import hashlib
         kb = json.loads(kbtxt[kbtxt.index("[", kbtxt.index("export const KB")):kbtxt.rindex("]") + 1])
-        sig = hashlib.sha1("\n".join(c.get("r", "") + "|" + c["t"] for c in kb).encode("utf-8")).hexdigest()[:16]
+        sig = hashlib.sha1("\n".join(c.get("r", "") + "|" + c["t"] + "|" + c["x"] for c in kb).encode("utf-8")).hexdigest()[:16]  # как в vec.py
         vtxt = read(VJS)
         vec = json.loads(vtxt[vtxt.index("{", vtxt.index("export const VEC")):vtxt.rindex("}") + 1])
         if vec.get("n") == n and vec.get("sig") == sig: ok("векторы помощника: %d × %d, модель %s" % (vec["n"], vec["dims"], vec["model"]))

@@ -69,11 +69,12 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 .tgb .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
   transform:rotate(45deg) translateY(-2px);opacity:.55;flex:none}
 .tg.open .tgb .chev{transform:rotate(-135deg) translateY(2px)}
-.menu{position:absolute;top:100%;left:0;z-index:70;min-width:260px;background:var(--card);border:1px solid var(--rule);
+.menu{position:absolute;top:100%;left:0;z-index:70;min-width:300px;max-width:calc(100vw - 24px);background:var(--card);border:1px solid var(--rule);
   box-shadow:0 12px 34px rgba(0,0,0,.28);padding:6px;display:none;flex-direction:column;gap:2px}
 .tg.open .menu{display:flex}
 .menu .tab{width:100%;justify-content:space-between;border-bottom:0;border-left:3px solid transparent;padding:9px 12px;
-  text-transform:none;letter-spacing:.02em;font-size:15px;color:var(--ink-soft)}
+  text-transform:none;letter-spacing:.02em;font-size:15px;color:var(--ink-soft);text-align:left;gap:14px}
+.menu .tab .badge{flex:none;white-space:nowrap}
 .menu .tab:hover{color:var(--ink)}
 .menu .tab[aria-selected="true"]{border-left-color:var(--tcol);background:var(--paper-2);color:var(--ink)}
 .tab.top{margin-left:auto}

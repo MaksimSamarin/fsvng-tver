@@ -20,7 +20,8 @@ raw = io.open(KB_JS, encoding="utf-8").read()
 kb = json.loads(raw[raw.index("[", raw.index("export const KB")):raw.rindex("]") + 1])
 # в вектор идёт только текст источника — разговорные фразы (k) остаются в поиске по словам
 texts = [(c["t"] + ". " + c["x"]).strip() for c in kb]
-sig = hashlib.sha1("\n".join(c.get("r", "") + "|" + c["t"] for c in kb).encode("utf-8")).hexdigest()[:16]
+# подпись — по тому же тексту, что уходит в вектор (заголовок + тело), иначе правка статьи останется незамеченной
+sig = hashlib.sha1("\n".join(c.get("r", "") + "|" + c["t"] + "|" + c["x"] for c in kb).encode("utf-8")).hexdigest()[:16]
 
 ctx = ssl.create_default_context()
 if os.environ.get("RELAY_INSECURE") == "1":          # только для 127.0.0.1 на самом сервере
