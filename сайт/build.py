@@ -294,7 +294,7 @@ def md2html(path, idp):
     return "\n".join(out)
 
 CH_REPORT = "https://discord.com/channels/1538938584441163776/1542813994312798269"
-CH_REQUEST = "https://discord.com/channels/1538938584441163776/1541938339240869958"
+CH_REQUEST = "https://discord.com/channels/1538938584441163776/1550924836400922635"
 CH_TICKET = "https://discord.com/channels/1538938584441163776/1550924926582653139"
 
 CHAN_RULES = [
@@ -316,7 +316,7 @@ CHANS_CARDS = '''<div class="chans">
     <span class="cn">Шаг 1</span><span class="ct">Отчёт на повышение</span>
     <span class="cd">Курсанты подают сюда отчёт с доказательствами. Ждём проверки и отметки ✅</span>
     <span class="cl">отчет-на-повышение-курсанты</span></a>
-  <a class="chan ch2" href="discord://-/channels/1538938584441163776/1541938339240869958">
+  <a class="chan ch2" href="discord://-/channels/1538938584441163776/1550924836400922635">
     <span class="cn">Шаг 2</span><span class="ct">Запрос на повышение</span>
     <span class="cd">Отписываем <strong>после одобрения отчёта</strong>, приложив ссылку на одобренное сообщение</span>
     <span class="cl">запрос-на-повышения</span></a>
@@ -333,7 +333,7 @@ CHANS = '''<h3 class="chapter" id="chans" data-short="Каналы Discord">Ка
     <span class="cn">Шаг 1</span><span class="ct">Отчёт на повышение</span>
     <span class="cd">Курсанты подают сюда отчёт с доказательствами. Ждём проверки и отметки ✅</span>
     <span class="cl">отчет-на-повышение-курсанты</span></a>
-  <a class="chan ch2" href="discord://-/channels/1538938584441163776/1541938339240869958">
+  <a class="chan ch2" href="discord://-/channels/1538938584441163776/1550924836400922635">
     <span class="cn">Шаг 2</span><span class="ct">Запрос на повышение</span>
     <span class="cd">Отписываем <strong>после одобрения отчёта</strong>, приложив ссылку на одобренное сообщение</span>
     <span class="cl">запрос-на-повышения</span></a>
@@ -637,17 +637,15 @@ STAGE23 = ('<div class="stage"><div class="stage-h"><h3 class="chapter sg" id="r
         "1 скриншот результата")
  + '</div></div>')
 
-FORM_REQUEST = """@Ваш тэг
-1. Имя Фамилия Статик
+FORM_REQUEST = """1. Тег себя (через @)
 2. Текущий ранг - ранг на который повышаетесь
-3. Ссылка на одобренный отчет на повышение
-@[👮] Инструктор КС ФСВНГ"""
+3. Ссылка на ОДОБРЕННЫЙ ОТЧЁТ
+4. @Тег Кадровой службы"""
 
-FORM_EXAMPLE = """@!Комиссар | В. Гуров | 13053
-1. Владислав Гуров 13053
-2. 2-3 ранг
-3. [ссылка на одобренный отчёт]
-@[👮] Инструктор КС ФСВНГ"""
+FORM_EXAMPLE = """1. @Зам.КС | Денис Спасский | 65597
+2. с 1 по 2
+3. [ссылка на одобренный отчёт в #отчет-на-повышение-курсанты]
+4. @[👮] Кадровая служба ФСВНГ"""
 
 GFORM = "https://docs.google.com/forms/d/e/1FAIpQLSfbwGdN5GDH8ZOyQWyjBuToUWGr-g03veAsFkhylA7lY7-Dsw/viewform"
 
@@ -669,7 +667,8 @@ SUBMIT = ('<h3 class="chapter" id="ru-submit" data-short="Подача отчё�
  '<div class="cmd"><pre id="ru-ex">' + esc(FORM_EXAMPLE) + '</pre>'
  '<button class="cp" data-c="ru-ex">Копировать</button></div>'
  '<div class="note bad"><div class="h">Строго заполнять по форме</div>'
- '<p style="margin:0">Последней строкой у нас всегда <code>@[👮] Инструктор КС ФСВНГ</code>. Заявка не по форме не рассматривается.</p></div>')
+ '<p style="margin:0">Четыре строки, порядок не менять. Первой — свой тег через @, последней — тег Кадровой службы <code>@[👮] Кадровая служба ФСВНГ</code>. '
+ 'Ссылка в третьей строке — на уже одобренный отчёт. Заявка не по форме не рассматривается.</p></div>')
 
 AFTER = ('<h3 class="chapter" id="ru-after" data-short="Что дальше">Что дальше</h3>'
  '<p><strong>После 3 ранга</strong> тебя автоматически зачисляют в <strong>РВО</strong> — Роту вневедомственной охраны, выбирать ничего не нужно. '
