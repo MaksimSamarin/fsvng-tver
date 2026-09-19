@@ -116,7 +116,7 @@ for pid, nm in [("p-memo","Памятка"),("p-vu","Устав ВС"),("p-du","
     if 'id="%s"' % pid in site: ok("вкладка «%s» на месте" % nm)
     else: err("нет вкладки «%s»" % nm)
 for cnt, need, what in [(site.count('class="blk"'), 12, "разделов памятки"),
-                        (site.count('<details class="q">'), 20, "вопросов экзамена"),
+                        (site.count('<details class="q">'), 30, "вопросов экзамена"),
                         (site.count('class="task"'), 10, "задач повышения"),
                         (site.count('class="chan '), 3, "карточек каналов в памятке"),
                         (site.count('class="st2"'), 2, "шага подачи отчёта")]:

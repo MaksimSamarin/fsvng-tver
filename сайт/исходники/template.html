@@ -534,7 +534,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   <div id="nav-fs" hidden><h2 class="panel-h">Статус должностных лиц</h2><ol id="toc-fs"></ol></div>
   <div id="nav-fe" hidden><h2 class="panel-h">Кодекс этики</h2><ol id="toc-fe"></ol></div>
   <div id="nav-fm" hidden><h2 class="panel-h">Военное и чрезвычайное положение</h2><ol id="toc-fm"></ol></div>
-  <div id="nav-ex" hidden><h2 class="panel-h">Экзамен</h2><p style="font-size:13.5px;color:var(--ink-faint);font-family:var(--f-body);margin:0">20 вопросов по всем разделам. Нажми на вопрос, чтобы раскрыть ответ.</p></div>
+  <div id="nav-ex" hidden><h2 class="panel-h">Экзамен</h2><p style="font-size:13.5px;color:var(--ink-faint);font-family:var(--f-body);margin:0">30 вопросов: уставы, порядок службы и статья по ситуации. Нажми на вопрос, чтобы раскрыть ответ.</p></div>
 </nav>
 
 <main>
@@ -658,7 +658,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
       docsel.appendChild(og);
     });
     var ex=document.querySelector('.tab.top[data-p="p-ex"]');
-    if(ex){ var oe=document.createElement("option"); oe.value="p-ex"; oe.textContent=tabLabel(ex)+" — 20 вопросов"; docsel.appendChild(oe); }
+    if(ex){ var oe=document.createElement("option"); oe.value="p-ex"; oe.textContent=tabLabel(ex)+" — 30 вопросов"; docsel.appendChild(oe); }
     docsel.addEventListener("change",function(){ show(docsel.value); });
   }
   syncGroups("p-memo");
