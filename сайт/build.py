@@ -48,6 +48,7 @@ def parse_charter(path, cls, skip_head=0):
     lines = [l.rstrip() for l in io.open(path, encoding="utf-8-sig").read().split("\n")]
     out, tocn = [], 0
     art = None
+    app_title = False   # следующая строка после «ПРИЛОЖЕНИЕ» — его название
     def close():
         nonlocal art
         if art:
@@ -81,10 +82,22 @@ def parse_charter(path, cls, skip_head=0):
             close()
             out.append('<h3 class="chapter" id="%s-pre" data-short="Преамбула">Преамбула</h3>' % cls)
             continue
+        # приложение к уставу (ВУ: порядок хранения медицинских препаратов) — отдельный раздел без статей
+        if re.match(r"^ПРИЛОЖЕНИЕ(\s+\d+)?\.?$", l):
+            close()
+            app_title = True
+            continue
+        if app_title:
+            app_title = False
+            out.append('<h3 class="chapter" id="%s-app" data-short="Приложение">Приложение. %s</h3>' % (cls, esc(l)))
+            continue
         if art is not None:
             art["body"].append(l)
+        elif re.match(r"^\d+\.\s+\S", l):                       # «1. Общие положения» — раздел приложения
+            out.append("<h4>%s</h4>" % inline(l))
         else:
-            out.append("<p>%s</p>" % inline(l))
+            m = re.match(r"^(\d+\.\d+\.)\s+(.*)$", l)               # «1.1. …» — пункт приложения
+            out.append("<p>%s</p>" % ("<b>%s</b> %s" % (esc(m.group(1)), inline(m.group(2))) if m else inline(l)))
     close()
     return "\n".join(out)
 
@@ -506,20 +519,30 @@ def dochead(cls, abbr, title, sub, facts):
             '<p class="sub">%s</p><div class="facts">%s</div></div>' % (cls, abbr, title, sub, f))
 
 # ---------- панели уставов ----------
-vu = dochead("dv", "Основной документ", "Устав ВС РФ и ФСВНГ",
-             "Общий порядок службы: распорядок дня, форма одежды, структура, служебная связь, регламент действий и кадровая отчётность.",
-             ["Консолидированная редакция", "8 глав", "Действует для <b>ВС и ФСВНГ</b>"]) + \
-     parse_charter(os.path.join(SRC, "устав-вс-и-фсвнг_оригинал.txt"), "vu", 2)
+def edition(fn):
+    """«Редакция дд.мм.гггг» из шапки оригинала — дата стоит во второй строке документа"""
+    head = io.open(os.path.join(SRC, fn), encoding="utf-8-sig").read(400)
+    m = re.search(r"редакция\s+от\s+(\d\d\.\d\d\.\d{4})", head, re.I)
+    return "Редакция <b>%s</b>" % m.group(1) if m else "Консолидированная редакция"
 
+def nart(body): return "%d статей" % body.count('class="art"')
+def nch(body):  return "%d глав" % body.count("ГЛАВА ")
+
+vu_body = parse_charter(os.path.join(SRC, "устав-вс-и-фсвнг_оригинал.txt"), "vu", 2)
+vu = dochead("dv", "Основной документ", "Устав ВС РФ и ФСВНГ",
+             "Общий порядок службы: распорядок дня, форма одежды, структура, служебная связь, регламент действий, "
+             "кадровая отчётность и медицинское обеспечение.",
+             [edition("устав-вс-и-фсвнг_оригинал.txt"), nart(vu_body) + ", " + nch(vu_body), "Действует для <b>ВС и ФСВНГ</b>"]) + vu_body
+
+du_body = parse_charter(os.path.join(SRC, "дисциплинарный-устав_оригинал.txt"), "du", 3)   # шапка: название, «ВС и ФСВНГ», редакция
 du = dochead("dd", "Дисциплина", "Дисциплинарный устав",
              "Виды дисциплинарных проступков, меры взыскания, порядок их применения и поощрения военнослужащих.",
-             ["Редакция <b>10.09.2026</b>", "35 статей", "ФСВНГ ведёт <b>ОСБ</b>"]) + \
-     parse_charter(os.path.join(SRC, "дисциплинарный-устав_оригинал.txt"), "du", 4)
+             [edition("дисциплинарный-устав_оригинал.txt"), nart(du_body), "ФСВНГ ведёт <b>ОСБ</b>"]) + du_body
 
+uk_body = parse_charter(os.path.join(SRC, "устав-караульно-постовой-службы_оригинал.txt"), "uk", 2)
 uk = dochead("du_", "Служба на посту", "Устав караульно-постовой службы",
              "Главный документ на посту: перечень постов, заступление и сдача, пропускной режим, досмотр и запреты на КПП.",
-             ["Консолидированная редакция", "44 статьи", "Посты на <b>Алабино</b>"]) + \
-     parse_charter(os.path.join(SRC, "устав-караульно-постовой-службы_оригинал.txt"), "uk", 2)
+             [edition("устав-караульно-постовой-службы_оригинал.txt"), nart(uk_body), "Посты на <b>Алабино</b>"]) + uk_body
 
 D = os.path.join(ROOT, "docs")
 le = dochead("dl", "Внутренние материалы", "Лекции ФСВНГ",
