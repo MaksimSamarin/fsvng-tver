@@ -44,7 +44,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tcol,var(--field));font-weight:700}
 .tab .badge{font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--rule);padding:1px 5px}
 .tab[aria-selected="true"] .badge{color:var(--tcol,var(--field));border-color:var(--tcol,var(--field))}
-.tb-vu{--tcol:var(--field)}.tb-du{--tcol:var(--signal)}.tb-uk{--tcol:var(--brass)}.tb-le{--tcol:var(--field-soft)}.tb-ru{--tcol:var(--brass)}.tb-av{--tcol:var(--brass)}
+.tb-vu{--tcol:var(--field)}.tb-du{--tcol:var(--signal)}.tb-uk{--tcol:var(--brass)}.tb-le{--tcol:var(--field-soft)}.tb-ru{--tcol:var(--brass)}.tb-av{--tcol:var(--brass)}.tb-as{--tcol:var(--brass)}
 
 
 .tabs{align-items:center}
@@ -520,6 +520,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
       <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Сотруднику</span><span class="cur"></span><i class="chev"></i></button>
       <div class="menu" role="menu">
         <button class="tab tb-av" role="tab" aria-selected="false" data-p="p-av">Карта обязанностей АВНГ<span class="badge">4 ступени</span></button>
+        <button class="tab tb-as" role="tab" aria-selected="false" data-p="p-as">Система повышения АВНГ<span class="badge">5 → 13</span></button>
       </div>
     </div>
     <div class="tg" id="tg-u">
@@ -562,6 +563,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   <div id="nav-ru" hidden><h2 class="panel-h">Система повышения</h2><ol id="toc-ru"></ol></div>
   <div id="nav-le" hidden><h2 class="panel-h">Лекции</h2><ol id="toc-le"></ol></div>
   <div id="nav-av" hidden><h2 class="panel-h">Карта обязанностей АВНГ</h2><ol id="toc-av"></ol></div>
+  <div id="nav-as" hidden><h2 class="panel-h">Система повышения АВНГ</h2><ol id="toc-as"></ol></div>
   <div id="nav-vu" hidden><h2 class="panel-h">Устав ВС и ФСВНГ</h2><ol id="toc-vu"></ol></div>
   <div id="nav-du" hidden><h2 class="panel-h">Дисциплинарный устав</h2><ol id="toc-du"></ol></div>
   <div id="nav-uk" hidden><h2 class="panel-h">Караульно-постовая служба</h2><ol id="toc-uk"></ol></div>
@@ -583,6 +585,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 <div class="pane" id="p-ru" hidden><!--INSERT:ru--></div>
 <div class="pane" id="p-le" hidden><!--INSERT:le--></div>
 <div class="pane" id="p-av" hidden><!--INSERT:av--></div>
+<div class="pane" id="p-as" hidden><!--INSERT:as--></div>
 <div class="pane" id="p-vu" hidden><!--INSERT:vu--></div>
 <div class="pane" id="p-du" hidden><!--INSERT:du--></div>
 <div class="pane" id="p-uk" hidden><!--INSERT:uk--></div>
@@ -646,7 +649,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 (function(){
   var panes=[].slice.call(document.querySelectorAll(".pane"));
   var tabs=[].slice.call(document.querySelectorAll(".tab"));
-  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-av":"nav-av","p-ex":"nav-ex","p-ug":"nav-ug","p-ap":"nav-ap",
+  var navs={ "p-memo":"nav-memo","p-vu":"nav-vu","p-du":"nav-du","p-uk":"nav-uk","p-le":"nav-le","p-ru":"nav-ru","p-av":"nav-av","p-as":"nav-as","p-ex":"nav-ex","p-ug":"nav-ug","p-ap":"nav-ap",
              "p-pk":"nav-pk","p-fo":"nav-fo","p-fw":"nav-fw","p-fs":"nav-fs","p-fe":"nav-fe","p-fm":"nav-fm" };
   var qbox=document.getElementById("q");
 
@@ -762,7 +765,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     });
   }
   buildToc("p-vu","toc-vu");buildToc("p-du","toc-du");buildToc("p-uk","toc-uk");
-  buildToc("p-le","toc-le");buildToc("p-ru","toc-ru");buildToc("p-av","toc-av");
+  buildToc("p-le","toc-le");buildToc("p-ru","toc-ru");buildToc("p-av","toc-av");buildToc("p-as","toc-as");
   buildToc("p-ug","toc-ug");buildToc("p-ap","toc-ap");
   buildToc("p-pk","toc-pk");buildToc("p-fo","toc-fo");buildToc("p-fw","toc-fw");
   buildToc("p-fs","toc-fs");buildToc("p-fe","toc-fe");buildToc("p-fm","toc-fm");
