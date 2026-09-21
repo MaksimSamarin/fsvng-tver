@@ -44,7 +44,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tcol,var(--field));font-weight:700}
 .tab .badge{font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--rule);padding:1px 5px}
 .tab[aria-selected="true"] .badge{color:var(--tcol,var(--field));border-color:var(--tcol,var(--field))}
-.tb-vu{--tcol:var(--field)}.tb-du{--tcol:var(--signal)}.tb-uk{--tcol:var(--brass)}.tb-le{--tcol:var(--field-soft)}.tb-ru{--tcol:var(--brass)}.tb-av{--tcol:var(--field)}
+.tb-vu{--tcol:var(--field)}.tb-du{--tcol:var(--signal)}.tb-uk{--tcol:var(--brass)}.tb-le{--tcol:var(--field-soft)}.tb-ru{--tcol:var(--brass)}.tb-av{--tcol:var(--brass)}
 
 
 .tabs{align-items:center}
@@ -59,7 +59,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.2vw,54px)
 /* группы документов: кнопка группы показывает открытый документ, список — по клику */
 .tabs{gap:4px}
 .tg{position:relative}
-#tg-k{--tcol:var(--field-soft)}#tg-u{--tcol:var(--field)}#tg-c{--tcol:var(--law)}#tg-z{--tcol:var(--law-2)}
+#tg-k{--tcol:var(--field-soft)}#tg-s{--tcol:var(--brass)}#tg-u{--tcol:var(--field)}#tg-c{--tcol:var(--law)}#tg-z{--tcol:var(--law-2)}
 .tgb{font-family:var(--f-display);font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;background:none;border:0;
   border-bottom:3px solid transparent;color:var(--ink-faint);padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .tgb:hover{color:var(--ink);background:var(--paper-2)}
@@ -514,7 +514,12 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
         <button class="tab" role="tab" aria-selected="true" data-p="p-memo">Памятка<span class="badge">12</span></button>
         <button class="tab tb-ru" role="tab" aria-selected="false" data-p="p-ru">Повышение<span class="badge">1 → 6</span></button>
         <button class="tab tb-le" role="tab" aria-selected="false" data-p="p-le">Лекции<span class="badge">6 тем</span></button>
-        <button class="tab tb-av" role="tab" aria-selected="false" data-p="p-av">Сотруднику АВНГ<span class="badge">4 ступени</span></button>
+      </div>
+    </div>
+    <div class="tg" id="tg-s">
+      <button class="tgb" type="button" aria-haspopup="true" aria-expanded="false"><span class="tgn">Сотруднику</span><span class="cur"></span><i class="chev"></i></button>
+      <div class="menu" role="menu">
+        <button class="tab tb-av" role="tab" aria-selected="false" data-p="p-av">Карта обязанностей АВНГ<span class="badge">4 ступени</span></button>
       </div>
     </div>
     <div class="tg" id="tg-u">
@@ -556,7 +561,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-fa
     <div class="progress">Изучено <b id="pcount">0</b> из 12<div class="bar"><i id="pbar"></i></div></div></div>
   <div id="nav-ru" hidden><h2 class="panel-h">Система повышения</h2><ol id="toc-ru"></ol></div>
   <div id="nav-le" hidden><h2 class="panel-h">Лекции</h2><ol id="toc-le"></ol></div>
-  <div id="nav-av" hidden><h2 class="panel-h">Сотруднику АВНГ</h2><ol id="toc-av"></ol></div>
+  <div id="nav-av" hidden><h2 class="panel-h">Карта обязанностей АВНГ</h2><ol id="toc-av"></ol></div>
   <div id="nav-vu" hidden><h2 class="panel-h">Устав ВС и ФСВНГ</h2><ol id="toc-vu"></ol></div>
   <div id="nav-du" hidden><h2 class="panel-h">Дисциплинарный устав</h2><ol id="toc-du"></ol></div>
   <div id="nav-uk" hidden><h2 class="panel-h">Караульно-постовая служба</h2><ol id="toc-uk"></ol></div>

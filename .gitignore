@@ -19,3 +19,6 @@ desktop.ini
 .DS_Store
 __pycache__/
 *.pyc
+
+# раздатка для Discord, рендерится из артефакта, на сайте живёт как HTML
+картинки/
