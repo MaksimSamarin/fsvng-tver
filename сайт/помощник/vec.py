@@ -4,14 +4,16 @@
 обычно — на самом сервере реле):
     RELAY_URL=https://127.0.0.1:8443/api/embed RELAY_SECRET=... RELAY_INSECURE=1 python3 vec.py
 Пересчитывать после любой правки уставов, лекций или смены модели эмбеддингов."""
-import base64, hashlib, io, json, math, os, re, ssl, sys, time, urllib.request
+import base64, hashlib, io, json, math, os, re, ssl, sys, time, urllib.error, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KB_JS = os.path.join(HERE, "kb.js")
 OUT = os.path.join(HERE, "kb-vec.js")
 URL = os.environ.get("RELAY_URL", "")
 SECRET = os.environ.get("RELAY_SECRET", "")
-BATCH = 40
+BATCH = 24          # на пачках по 40 OpenRouter отвечал 429 «engine is currently overloaded» (реле отдаёт его как 502)
+PAUSE = 3.2         # реле пускает 20 запросов в минуту с адреса
+RETRIES = 6         # повторы на 429/5xx с нарастающей паузой: 8, 16, 32, 60, 60 с
 
 if not URL or not SECRET:
     sys.exit("нужны RELAY_URL и RELAY_SECRET")
@@ -29,11 +31,29 @@ if os.environ.get("RELAY_INSECURE") == "1":          # только для 127.0
     ctx.verify_mode = ssl.CERT_NONE
 
 
-def call(items):
+def call_once(items):
     req = urllib.request.Request(URL, data=json.dumps({"input": items}, ensure_ascii=False).encode("utf-8"),
                                  headers={"Content-Type": "application/json", "X-Relay-Key": SECRET})
     with urllib.request.urlopen(req, timeout=120, context=ctx) as r:
         return json.loads(r.read().decode("utf-8"))
+
+
+def call(items):
+    """Провайдер эмбеддингов временами перегружен — ждём и повторяем, а не роняем весь пересчёт."""
+    delay = 8
+    for attempt in range(1, RETRIES + 1):
+        try:
+            return call_once(items)
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or attempt == RETRIES:
+                raise
+            print("  попытка %d: HTTP %d, жду %d с" % (attempt, e.code, delay), flush=True)
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            if attempt == RETRIES:
+                raise
+            print("  попытка %d: %s, жду %d с" % (attempt, e, delay), flush=True)
+        time.sleep(delay)
+        delay = min(delay * 2, 60)
 
 
 vectors, model, dims = [], None, None
@@ -44,7 +64,7 @@ for i in range(0, len(texts), BATCH):
     dims = d["dims"]
     vectors.extend(d["vectors"])
     print("  %d/%d" % (min(i + BATCH, len(texts)), len(texts)), flush=True)
-    time.sleep(0.5)                                    # реле пускает 20 запросов в минуту с адреса
+    time.sleep(PAUSE)
 
 assert len(vectors) == len(kb), "число векторов не совпало с числом фрагментов"
 assert all(len(v) == dims for v in vectors), "разная размерность"
